@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "WFR_GS.h"
 #include "waveform.h"
 #include "problem.h"

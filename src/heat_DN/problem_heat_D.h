@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel, Benjamin Rueth
+September 2018
+*/
+
 #ifndef PROBLEM_HEAT_D_H_
 #define PROBLEM_HEAT_D_H_
 

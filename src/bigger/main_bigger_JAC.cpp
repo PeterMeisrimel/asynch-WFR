@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "WFR_JAC.h"
 #include "problem_bigger.h"
 #include "mpi.h"

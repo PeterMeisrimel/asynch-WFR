@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef U0_H_
 #define U0_H_
 

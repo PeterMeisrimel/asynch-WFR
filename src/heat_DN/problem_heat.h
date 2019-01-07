@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel, Benjamin Rueth
+September 2018
+*/
+
 #ifndef PROBLEM_HEAT_H_
 #define PROBLEM_HEAT_H_
 
@@ -38,6 +43,7 @@ public:
   void reset_to_checkpoint(){
     *_uold -> vector() = *_ucheckpoint -> vector();
   }
+  double * get_uother_p(){return _uother;}; // returns pointer to _uother
 };
 
 #endif //PROBLEM_HEAT_H_

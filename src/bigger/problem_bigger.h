@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef PROBLEM_BIGGER_H_
 #define PROBLEM_BIGGER_H_
 
@@ -24,6 +29,7 @@ Time-integration is done using the explicit Euler scheme
 class Problem_bigger : public Problem{
 protected:
   double *_uold, *_unew, *_ucheck;
+  Waveform * _WF; // pointer to Waveform, for internal handling in rhs
   virtual void rhs(double, double*, double*) = 0;
 public:
   Problem_bigger(int);

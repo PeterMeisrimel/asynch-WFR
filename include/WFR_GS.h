@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef WFR_GS_H_
 #define WFR_GS_H_
 

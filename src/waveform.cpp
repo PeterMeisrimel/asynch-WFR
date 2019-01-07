@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef WAVEFORM_CPP_
 #define WAVEFORM_CPP_
 

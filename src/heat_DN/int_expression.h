@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel, Benjamin Rueth
+September 2018
+*/
+
 #ifndef INT_EXPRESSION_H_
 #define INT_EXPRESSION_H_
 

@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef WAVEFORM_H_
 #define WAVEFORM_H_
 

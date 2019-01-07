@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel, Benjamin Rueth
+September 2018
+*/
+
 #include "problem_heat_N.h"
 #include "problem_heat.h"
 

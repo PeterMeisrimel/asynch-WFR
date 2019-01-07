@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef REF_SOL_H_
 #define REF_SOL_H_
 

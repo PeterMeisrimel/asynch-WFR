@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "WFR_JAC.h"
 #include "problem_toy.h"
 #include "mpi.h"

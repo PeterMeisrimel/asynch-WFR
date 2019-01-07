@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef PROBLEM_H_
 #define PROBLEM_H_
 
@@ -8,7 +13,6 @@ class Problem{
 protected:
   double * _u0, * _uother; // initial value and storage for evaluating waveforms
   int _length, _length_other; // corresponding lenghtes of the problems
-  Waveform * _WF; // pointer to Waveform, for internal handling, should possibly be removed here
   bool other_init_done; // marker that init_other has been called
 public:
 
@@ -34,7 +38,6 @@ public:
 
   virtual void create_checkpoint()   = 0; // to create backup of possible internal variables at start of macrostep
   virtual void reset_to_checkpoint() = 0; // if macro step needs to be repeated, resetting to previous start
-  double * get_uother_p(){return _uother;}; // returns pointer to _uother, should possibly be removed here
 };
 
 #endif //PROBLEM_H_

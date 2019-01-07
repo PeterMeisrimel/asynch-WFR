@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef WFR_SYNCH_H_
 #define WFR_SYNCH_H_
 

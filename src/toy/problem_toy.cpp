@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "problem_toy.h"
 
 /////////////////// Problem_toy

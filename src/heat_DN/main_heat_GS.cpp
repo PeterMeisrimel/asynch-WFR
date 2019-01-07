@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "WFR_GS.h"
 #include "problem_heat_D.h"
 #include "problem_heat_N.h"

@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel, Benjamin Rueth
+September 2018
+*/
+
 #ifndef BOUNDARIES_H_
 #define BOUNDARIES_H_
 

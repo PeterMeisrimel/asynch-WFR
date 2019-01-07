@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #include "WFR_GS.h"
 #include "problem_toy.h"
 #include "mpi.h"

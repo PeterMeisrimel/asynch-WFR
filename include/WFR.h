@@ -1,3 +1,8 @@
+/*
+Authors: Peter Meisrimel
+December 2018
+*/
+
 #ifndef MPI_TAGS_
 #define MPI_TAGS_
 
