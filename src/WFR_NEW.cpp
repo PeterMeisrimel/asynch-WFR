@@ -83,11 +83,9 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
 	MPI_Win_allocate(WF_LEN_SELF * DIM_SELF * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_win, &WIN_data);
   WF_win = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data_win); // init with times not necessary in theory
 
-	IDX_last = WF_LEN_SELF - 1; // obsolete
-
   MPI_Barrier(MPI_COMM_WORLD);
-	// Macro step loop
-	for(int i = 0; i < num_macro; i++){
+	runtime = MPI_Wtime(); // runtime measurement start
+	for(int i = 0; i < num_macro; i++){ // Macro step loop
     prob -> create_checkpoint();
     WF_self ->get_last(u0_self);
     WF_self ->set(0, u0_self);
@@ -104,6 +102,8 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
       WF_other -> time_shift(window_length); // NOTE FOR FUTURE: WF_other and WF_other_new share same time vector, hence only 1 shift here
     }
 	} // endfor macrostep loop
+	runtime = MPI_Wtime() - runtime; // runtime measurement end
+
 	MPI_Win_free(&WIN_data);
 	MPI_Win_free(&WIN_idx);
 }

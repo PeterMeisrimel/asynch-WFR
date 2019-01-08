@@ -66,6 +66,9 @@ void WFR_synch::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_sel
   WF_other->set_last(u0_other);
 
   double window_length = _t_end/num_macro;
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	runtime = MPI_Wtime(); // runtime measurement start
   for(int i = 0; i < num_macro; i++){
     prob->create_checkpoint();
     WF_self ->get_last(u0_self);
@@ -79,6 +82,7 @@ void WFR_synch::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_sel
       WF_other->time_shift(window_length);
     }
   }
+	runtime = MPI_Wtime() - runtime; // runtime measurement end
 }
 
 void WFR_synch::integrate_window(int steps){

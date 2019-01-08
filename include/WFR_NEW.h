@@ -12,8 +12,6 @@ December 2018
 
 class WFR_NEW : public WFR{
 private:
-  int IDX_last; // probably obsolete
-
   int msg_sent, msg_to_recv;
   int IDX, IDX_aux, * IDX_win;
 
@@ -24,9 +22,9 @@ private:
 
   void check_new_data(); // check for and recieve new data
 
-  void do_WF_iter        (double, int, int, int)     ; // tol, maxiter, steps_self , steps_other
-  void integrate_window  (int)                       ; // steps_self
-  bool check_convergence (double)                    ; // tol
+  void do_WF_iter        (double, int, int, int); // tol, maxiter, steps_self , steps_other
+  void integrate_window  (int); // steps_self
+  bool check_convergence (double); // tol
 public:
   WFR_NEW(int, int, double, Problem *);
 

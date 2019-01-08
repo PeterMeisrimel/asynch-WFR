@@ -5,7 +5,7 @@
 # Require CMake 3.5
 cmake_minimum_required(VERSION 3.5)
 
-set(PROJECT_NAME DN_heat)
+set(PROJECT_NAME heat_DN)
 project(${PROJECT_NAME})
 
 # Set CMake behavior
@@ -18,7 +18,7 @@ find_package(DOLFIN REQUIRED)
 include_directories(../../include)
 include_directories(../)
 
-set(SOURCES_BASE ../waveform.cpp ../WFR_GS.cpp ../WFR_JAC.cpp ../WFR_NEW.cpp ../WFR_synch.cpp)
+set(SOURCES_BASE ../waveform.cpp ../WFR_GS.cpp ../WFR_JAC.cpp ../WFR_NEW.cpp ../WFR_synch.cpp ../input_reader.cpp)
 set(SOURCES_LOCAL problem_heat.cpp problem_heat_D.cpp problem_heat_N.cpp)
  
 include(${DOLFIN_USE_FILE})
@@ -37,15 +37,9 @@ if (HAVE_NO_MULTLINE)
   set(CMAKE_CXX_FLAGS "-Wno-comment ${CMAKE_CXX_FLAGS}")
 endif()
 
-# Executable, TODO: this does the whole thing 3 times and is horribly slow
-add_executable(GS main_heat_GS.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
-target_link_libraries(GS dolfin)
-
-add_executable(JAC main_heat_JAC.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
-target_link_libraries(JAC dolfin)
-
-add_executable(NEW main_heat_NEW.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
-target_link_libraries(NEW dolfin)
+# Executable
+add_executable(${PROJECT_NAME} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
+target_link_libraries(${PROJECT_NAME} dolfin)
 
 # Test targets
 set(test_parameters -np 2 ${MPIEXEC_PARAMS} "./${PROJECT_NAME}")

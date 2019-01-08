@@ -39,14 +39,17 @@ protected:
   double up_self, up_other, update;
   int WF_iters;
 
-  virtual void do_WF_iter        (double, int, int, int)      = 0; // tol, maxiter, steps_self, steps_other
-  virtual void integrate_window  (int)                        = 0; // steps_self
-  virtual bool check_convergence (double)                     = 0; // tol
+	double runtime;
+
+  virtual void do_WF_iter        (double, int, int, int) = 0; // tol, maxiter, steps_self, steps_other
+  virtual void integrate_window  (int)                   = 0; // steps_self
+  virtual bool check_convergence (double)                = 0; // tol
 public:
   virtual void run               (double, int, int, int, int = 1) = 0; // tol, maxiter, macro_steps, steps_self, conv_which
     
   virtual void get_sol(double * out){ return WF_self->get_last(out);}; // obtain solution
   int get_WF_iters(){ return WF_iters;}; // obtain total number of waveform iteration
+	double get_runtime(){ return runtime;}; // obtain runtime, not including initialization
 };
 
 #endif // WFR_GS_H_
