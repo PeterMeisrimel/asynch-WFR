@@ -1,4 +1,3 @@
-1. Spaces vs. tabs, this looks pretty ugly on github, looks fine with tab width of 2 spaces
-2. Proper verification of all problems, toy and bigger are manually verified so far, heat_DN not verified at all
-3. Timing and scripts to do automated runs and output run statistics
-4. Proper documentation, using doxygen?
+1. Proper verification of all problems, toy and bigger are manually verified so far, heat_DN not verified at all
+2. Timing and scripts to do automated runs and output run statistics
+3. Proper documentation, using doxygen?

@@ -28,29 +28,29 @@ Time-integration is done using the explicit Euler scheme
 
 class Problem_bigger : public Problem{
 protected:
-  double *_uold, *_unew, *_ucheck;
-  Waveform * _WF; // pointer to Waveform, for internal handling in rhs
-  virtual void rhs(double, double*, double*) = 0;
+    double *_uold, *_unew, *_ucheck;
+    Waveform * _WF; // pointer to Waveform, for internal handling in rhs
+    virtual void rhs(double, double*, double*) = 0;
 public:
-  Problem_bigger(int);
+    Problem_bigger(int);
 
-  void do_step(double, double, double*, Waveform *);
-  void create_checkpoint();
-  void reset_to_checkpoint();
+    void do_step(double, double, double*, Waveform *);
+    void create_checkpoint();
+    void reset_to_checkpoint();
 };
 
 class Problem_bigger_part_1: public Problem_bigger{
 private:
-  void rhs(double, double*, double*);
+    void rhs(double, double*, double*);
 public:
-  Problem_bigger_part_1();
+    Problem_bigger_part_1();
 };
 
 class Problem_bigger_part_2: public Problem_bigger{
 private:
-  void rhs(double, double*, double*);
+    void rhs(double, double*, double*);
 public:
-  Problem_bigger_part_2();
+    Problem_bigger_part_2();
 };
 
 #endif //PROBLEM_BIGGER_H_
