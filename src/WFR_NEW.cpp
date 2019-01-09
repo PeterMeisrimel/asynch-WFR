@@ -137,7 +137,7 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
             check_new_data();
 		}
 
-        MPI_Barrier(MPI_COMM_WORLD); // testing, should not be needed, but trying to force full synchronization here
+        //MPI_Barrier(MPI_COMM_WORLD); // testing, should not be needed, but trying to force full synchronization here
 
         if (check_convergence(WF_TOL)){
             break;
@@ -200,7 +200,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
         switch(conv_which){
             case 0:{ // usual 2-norm
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
-                up_other = WF_other->get_err_norm_sq_last(WF_other_last);
+                up_other = WF_other_new->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(up_self + up_other);
                 break;
             }
@@ -208,7 +208,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 double w_self  = float(DIM_SELF)  / float(DIM_SELF + DIM_OTHER);
                 double w_other = float(DIM_OTHER) / float(DIM_SELF + DIM_OTHER);
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
-                up_other = WF_other->get_err_norm_sq_last(WF_other_last);
+                up_other = WF_other_new->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(w_self*up_self + w_other*up_other);
                 break;
             }
@@ -216,7 +216,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 if (ID_SELF == 0)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else
-                    up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
+                    up_self  = WF_other_new ->get_err_norm_sq_last(WF_other_last);
                 update = sqrt(up_self);
                 break;
             }
@@ -224,7 +224,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 if (ID_SELF == 1)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else
-                    up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
+                    up_self  = WF_other_new ->get_err_norm_sq_last(WF_other_last);
                 update = sqrt(up_self);
                 break;
             }

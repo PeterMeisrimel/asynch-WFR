@@ -1,3 +1,7 @@
-1. Proper verification of all problems, toy and bigger are manually verified so far, heat_DN not verified at all
-2. Timing and scripts to do automated runs and output run statistics
-3. Proper documentation, using doxygen?
+Proper verification of all problems, toy and bigger are manually verified so far, heat_DN not verified at all
+
+Proper documentation, using doxygen?
+
+Properly free all allocated memory when done
+
+timings for small problems have seemingly high variance

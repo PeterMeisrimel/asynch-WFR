@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
 			break;
 	}
-    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);
+    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 0);
     wfr_method -> get_sol(sol);
     std::cout << std::setprecision(14) << ID_SELF << " " << wfr_method -> get_WF_iters() << " " << wfr_method -> get_runtime() << " " << *sol << std::endl;
 

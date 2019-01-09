@@ -62,10 +62,10 @@ int main(int argc, char *argv[]){
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);
     wfr_method -> get_sol(sol);
 
+    std::cout << std::setprecision(14) << ID_SELF << " " << wfr_method -> get_WF_iters() << " " << wfr_method -> get_runtime() << " ";
 	for(int i = 0; i < prob->get_length(); i++)
-        std::cout << std::setprecision(14) << "id " << ID_SELF << ", solution[" << i << "]: "<< sol[i] << ", Iterations: " << wfr_method -> get_WF_iters() << std::endl;
-	
-    std::cout << "id " << ID_SELF << " runtime: " << wfr_method->get_runtime() << std::endl;
+        std::cout << std::setprecision(14) << sol[i] << " ";
+    std::cout << std::endl;
 
     MPI_Finalize();
 	return 0;

@@ -84,7 +84,7 @@ double Waveform::get_err_norm_sq_last(double * in){
 
 void WF_swap_data_pointers(Waveform * wf1, Waveform * wf2){
     double * tmp;
-    tmp = wf1 -> get_data_p();
+    tmp = wf2 -> get_data_p();
     wf2 -> set_data_p(wf1 -> get_data_p());
     wf1 -> set_data_p(tmp);
 }
