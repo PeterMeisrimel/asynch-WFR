@@ -7,7 +7,6 @@ January 2019
 #include <cassert> // assert
 #include <string>  // string handling
 #include <stdlib.h> // string to double conversion
-#include <stdexcept>
 
 void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter){
 	assert( argc % 2 == 1);
@@ -35,8 +34,6 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& ti
 			macrosteps = atoi(argv[i+1]);
 		else if (arg == "-maxiter")
 			maxiter = atoi(argv[i+1]);
-		else
-			throw std::invalid_argument("invalid input parameter, check your spelling");
 	}
 }
 
@@ -57,7 +54,5 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
 			gridsize1 = atoi(argv[i+1]);
 		else if (arg == "-gridsize2")
 			gridsize2 = atoi(argv[i+1]);
-		else
-			std::invalid_argument("invalid input parameter, check your spelling");
 	}
 }
