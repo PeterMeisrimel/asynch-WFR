@@ -7,6 +7,7 @@ January 2019
 #include <cassert> // assert
 #include <string>  // string handling
 #include <stdlib.h> // string to double conversion
+#include <stdexcept>
 
 void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter){
 	assert( argc % 2 == 1);
@@ -30,6 +31,10 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& ti
 			timesteps1 = atoi(argv[i+1]);
 		else if (arg == "-timesteps2")
 			timesteps2 = atoi(argv[i+1]);
+		else if (arg == "-timesteps"){
+			timesteps1 = atoi(argv[i+1]);
+			timesteps2 = atoi(argv[i+1]);
+        }
 		else if (arg == "-macrosteps")
 			macrosteps = atoi(argv[i+1]);
 		else if (arg == "-maxiter")
@@ -54,5 +59,9 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
 			gridsize1 = atoi(argv[i+1]);
 		else if (arg == "-gridsize2")
 			gridsize2 = atoi(argv[i+1]);
+		else if (arg == "-gridsize"){
+			gridsize1 = atoi(argv[i+1]);
+			gridsize2 = atoi(argv[i+1]);
+        }
 	}
 }
