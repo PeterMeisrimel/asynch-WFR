@@ -3209,7 +3209,7 @@ public:
 
   const std::vector<bool> & enabled_coefficients() const final override
   {
-static const std::vector<bool> enabled({true, true, false, false, false});
+static const std::vector<bool> enabled({true, true, false, false});
 return enabled;
   }
 
@@ -3296,7 +3296,7 @@ public:
 
   const std::vector<bool> & enabled_coefficients() const final override
   {
-static const std::vector<bool> enabled({false, false, true, true, true});
+static const std::vector<bool> enabled({false, false, true, true});
 return enabled;
   }
 
@@ -3343,29 +3343,28 @@ return enabled;
     const double J_c1 = coordinate_dofs[0] * FE3_C0_D01_F_Q2[0][0][0] + coordinate_dofs[4] * FE3_C0_D01_F_Q2[0][0][1];
     const double J_c2 = coordinate_dofs[1] * FE3_C0_D01_F_Q2[0][0][0] + coordinate_dofs[3] * FE3_C0_D01_F_Q2[0][0][1];
     const double J_c3 = coordinate_dofs[1] * FE3_C0_D01_F_Q2[0][0][0] + coordinate_dofs[5] * FE3_C0_D01_F_Q2[0][0][1];
-    alignas(32) double sp[11];
-    sp[0] = w[2][0] * w[3][0];
-    sp[1] = J_c0 * triangle_reference_facet_jacobian[facet][0][0];
-    sp[2] = J_c1 * triangle_reference_facet_jacobian[facet][1][0];
-    sp[3] = sp[1] + sp[2];
-    sp[4] = sp[3] * sp[3];
-    sp[5] = triangle_reference_facet_jacobian[facet][0][0] * J_c2;
-    sp[6] = triangle_reference_facet_jacobian[facet][1][0] * J_c3;
-    sp[7] = sp[5] + sp[6];
-    sp[8] = sp[7] * sp[7];
-    sp[9] = sp[4] + sp[8];
-    sp[10] = std::sqrt(sp[9]);
+    alignas(32) double sp[10];
+    sp[0] = J_c0 * triangle_reference_facet_jacobian[facet][0][0];
+    sp[1] = J_c1 * triangle_reference_facet_jacobian[facet][1][0];
+    sp[2] = sp[0] + sp[1];
+    sp[3] = sp[2] * sp[2];
+    sp[4] = triangle_reference_facet_jacobian[facet][0][0] * J_c2;
+    sp[5] = triangle_reference_facet_jacobian[facet][1][0] * J_c3;
+    sp[6] = sp[4] + sp[5];
+    sp[7] = sp[6] * sp[6];
+    sp[8] = sp[3] + sp[7];
+    sp[9] = std::sqrt(sp[8]);
     alignas(32) double BF0[3] = {};
     for (int iq = 0; iq < 2; ++iq)
     {
         // Quadrature loop body setup (num_points=2)
         // Unstructured varying computations for num_points=2
-        double w4 = 0.0;
+        double w3 = 0.0;
         for (int ic = 0; ic < 3; ++ic)
-            w4 += w[4][ic] * FE3_C0_F_Q2[facet][iq][ic];
+            w3 += w[3][ic] * FE3_C0_F_Q2[facet][iq][ic];
         alignas(32) double sv2[2];
-        sv2[0] = sp[0] * w4;
-        sv2[1] = -1 * (-1 * sv2[0]) * sp[10];
+        sv2[0] = w[2][0] * w3;
+        sv2[1] = -1 * sv2[0] * sp[9];
         const double fw0 = sv2[1] * weights2[iq];
         for (int i = 0; i < 3; ++i)
             BF0[i] += fw0 * FE3_C0_F_Q2[facet][iq][i];
@@ -3649,7 +3648,7 @@ public:
 
   const char * signature() const final override
   {
-    return "a31655dfc4896f6acd316c0a0e4872a51f43a677bf4898ebe8b6367b76cc010129227902e3d9a02c9651cb0d67f0e27f4b9720bee20090290f595925a5fe6644";
+    return "45d75221c8254f7792f37f260b3577504b7d96935f57f7a4b803a79331b966d04aa86ae0c104f79377d5544cfaa9ba6920c88126808b241c72409149583a96a1";
   }
 
   std::size_t rank() const final override
@@ -3659,16 +3658,16 @@ public:
 
   std::size_t num_coefficients() const final override
   {
-    return 5;
+    return 4;
   }
 
   std::size_t original_coefficient_position(std::size_t i) const final override
   {
-    if (i >= 5)
+    if (i >= 4)
     {
         throw std::runtime_error("Invalid original coefficient index.");
     }
-    static const std::vector<std::size_t> position = {0, 1, 2, 3, 4};
+    static const std::vector<std::size_t> position = {0, 1, 2, 3};
     return position[i];
   }
 
@@ -3700,8 +3699,6 @@ public:
     case 3:
         return new heat_finite_element_2();
     case 4:
-        return new heat_finite_element_2();
-    case 5:
         return new heat_finite_element_0();
     default:
         return nullptr;
@@ -3721,8 +3718,6 @@ public:
     case 3:
         return new heat_dofmap_2();
     case 4:
-        return new heat_dofmap_2();
-    case 5:
         return new heat_dofmap_0();
     default:
         return nullptr;
@@ -4359,11 +4354,9 @@ typedef CoefficientSpace_u0 Form_L_FunctionSpace_1;
 
 typedef CoefficientSpace_alpha Form_L_FunctionSpace_2;
 
-typedef CoefficientSpace_gamma Form_L_FunctionSpace_3;
+typedef CoefficientSpace_dt Form_L_FunctionSpace_3;
 
-typedef CoefficientSpace_dt Form_L_FunctionSpace_4;
-
-typedef CoefficientSpace_f Form_L_FunctionSpace_5;
+typedef CoefficientSpace_f Form_L_FunctionSpace_4;
 
 class Form_L: public dolfin::Form
 {
@@ -4371,7 +4364,7 @@ public:
 
   // Constructor
   Form_L(std::shared_ptr<const dolfin::FunctionSpace> V0):
-    dolfin::Form(1, 5), u0(*this, 0), alpha(*this, 1), gamma(*this, 2), dt(*this, 3), f(*this, 4)
+    dolfin::Form(1, 4), u0(*this, 0), alpha(*this, 1), dt(*this, 2), f(*this, 3)
   {
     _function_spaces[0] = V0;
 
@@ -4379,14 +4372,13 @@ public:
   }
 
   // Constructor
-  Form_L(std::shared_ptr<const dolfin::FunctionSpace> V0, std::shared_ptr<const dolfin::GenericFunction> u0, std::shared_ptr<const dolfin::GenericFunction> alpha, std::shared_ptr<const dolfin::GenericFunction> gamma, std::shared_ptr<const dolfin::GenericFunction> dt, std::shared_ptr<const dolfin::GenericFunction> f):
-    dolfin::Form(1, 5), u0(*this, 0), alpha(*this, 1), gamma(*this, 2), dt(*this, 3), f(*this, 4)
+  Form_L(std::shared_ptr<const dolfin::FunctionSpace> V0, std::shared_ptr<const dolfin::GenericFunction> u0, std::shared_ptr<const dolfin::GenericFunction> alpha, std::shared_ptr<const dolfin::GenericFunction> dt, std::shared_ptr<const dolfin::GenericFunction> f):
+    dolfin::Form(1, 4), u0(*this, 0), alpha(*this, 1), dt(*this, 2), f(*this, 3)
   {
     _function_spaces[0] = V0;
 
     this->u0 = u0;
     this->alpha = alpha;
-    this->gamma = gamma;
     this->dt = dt;
     this->f = f;
 
@@ -4404,12 +4396,10 @@ public:
       return 0;
     else if (name == "alpha")
       return 1;
-    else if (name == "gamma")
-      return 2;
     else if (name == "dt")
-      return 3;
+      return 2;
     else if (name == "f")
-      return 4;
+      return 3;
 
     dolfin::dolfin_error("generated code for class Form",
                          "access coefficient data",
@@ -4427,10 +4417,8 @@ public:
     case 1:
       return "alpha";
     case 2:
-      return "gamma";
-    case 3:
       return "dt";
-    case 4:
+    case 3:
       return "f";
     }
 
@@ -4445,14 +4433,12 @@ public:
   typedef Form_L_MultiMeshFunctionSpace_0 MultiMeshTestSpace;
   typedef Form_L_FunctionSpace_1 CoefficientSpace_u0;
   typedef Form_L_FunctionSpace_2 CoefficientSpace_alpha;
-  typedef Form_L_FunctionSpace_3 CoefficientSpace_gamma;
-  typedef Form_L_FunctionSpace_4 CoefficientSpace_dt;
-  typedef Form_L_FunctionSpace_5 CoefficientSpace_f;
+  typedef Form_L_FunctionSpace_3 CoefficientSpace_dt;
+  typedef Form_L_FunctionSpace_4 CoefficientSpace_f;
 
   // Coefficients
   dolfin::CoefficientAssigner u0;
   dolfin::CoefficientAssigner alpha;
-  dolfin::CoefficientAssigner gamma;
   dolfin::CoefficientAssigner dt;
   dolfin::CoefficientAssigner f;
 };
@@ -4463,7 +4449,7 @@ public:
 
   // Constructor
   MultiMeshForm_L(std::shared_ptr<const dolfin::MultiMeshFunctionSpace> V0):
-    dolfin::MultiMeshForm(V0), u0(*this, 0), alpha(*this, 1), gamma(*this, 2), dt(*this, 3), f(*this, 4)
+    dolfin::MultiMeshForm(V0), u0(*this, 0), alpha(*this, 1), dt(*this, 2), f(*this, 3)
   {
     // Create and add standard forms
     std::size_t num_parts = V0->num_parts(); // assume all equal and pick first
@@ -4481,8 +4467,8 @@ public:
   }
 
   // Constructor
-  MultiMeshForm_L(std::shared_ptr<const dolfin::MultiMeshFunctionSpace> V0, std::shared_ptr<const dolfin::GenericFunction> u0, std::shared_ptr<const dolfin::GenericFunction> alpha, std::shared_ptr<const dolfin::GenericFunction> gamma, std::shared_ptr<const dolfin::GenericFunction> dt, std::shared_ptr<const dolfin::GenericFunction> f):
-    dolfin::MultiMeshForm(V0), u0(*this, 0), alpha(*this, 1), gamma(*this, 2), dt(*this, 3), f(*this, 4)
+  MultiMeshForm_L(std::shared_ptr<const dolfin::MultiMeshFunctionSpace> V0, std::shared_ptr<const dolfin::GenericFunction> u0, std::shared_ptr<const dolfin::GenericFunction> alpha, std::shared_ptr<const dolfin::GenericFunction> dt, std::shared_ptr<const dolfin::GenericFunction> f):
+    dolfin::MultiMeshForm(V0), u0(*this, 0), alpha(*this, 1), dt(*this, 2), f(*this, 3)
   {
     // Create and add standard forms
     std::size_t num_parts = V0->num_parts(); // assume all equal and pick first
@@ -4498,7 +4484,6 @@ public:
     /// Assign coefficients
     this->u0 = u0;
     this->alpha = alpha;
-    this->gamma = gamma;
     this->dt = dt;
     this->f = f;
 
@@ -4515,12 +4500,10 @@ public:
       return 0;
     else if (name == "alpha")
       return 1;
-    else if (name == "gamma")
-      return 2;
     else if (name == "dt")
-      return 3;
+      return 2;
     else if (name == "f")
-      return 4;
+      return 3;
 
     dolfin::dolfin_error("generated code for class Form",
                          "access coefficient data",
@@ -4538,10 +4521,8 @@ public:
     case 1:
       return "alpha";
     case 2:
-      return "gamma";
-    case 3:
       return "dt";
-    case 4:
+    case 3:
       return "f";
     }
 
@@ -4556,14 +4537,12 @@ public:
   typedef Form_L_MultiMeshFunctionSpace_0 MultiMeshTestSpace;
   typedef Form_L_FunctionSpace_1 CoefficientSpace_u0;
   typedef Form_L_FunctionSpace_2 CoefficientSpace_alpha;
-  typedef Form_L_FunctionSpace_3 CoefficientSpace_gamma;
-  typedef Form_L_FunctionSpace_4 CoefficientSpace_dt;
-  typedef Form_L_FunctionSpace_5 CoefficientSpace_f;
+  typedef Form_L_FunctionSpace_3 CoefficientSpace_dt;
+  typedef Form_L_FunctionSpace_4 CoefficientSpace_f;
 
   // Coefficients
   dolfin::MultiMeshCoefficientAssigner u0;
   dolfin::MultiMeshCoefficientAssigner alpha;
-  dolfin::MultiMeshCoefficientAssigner gamma;
   dolfin::MultiMeshCoefficientAssigner dt;
   dolfin::MultiMeshCoefficientAssigner f;
 };

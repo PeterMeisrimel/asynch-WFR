@@ -38,9 +38,7 @@ void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_i
     // t + dt as we do implicit euler
     WF_in -> eval(t + dt, _uother);
 
-    // change sign of flux
-    for(int i = 0; i < _length_other; i++)
-        _uother[i] *= -1;
+    // force boundary points of flux to zero, coefficients and sign have been set accordingly in heat.ufl
 	_uother[0] = 0;
 	_uother[_length_other-1] = 0;
 

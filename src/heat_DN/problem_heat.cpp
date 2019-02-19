@@ -31,7 +31,6 @@ Problem_heat::Problem_heat(int gridsize, double a, double g, double const_c, dou
     _L = new heat::LinearForm(_V);
 
     _L -> alpha = _alpha;
-    _L -> gamma = _gamma;
     _L -> dt    = _dt;
     _a -> alpha = _alpha;
     _a -> gamma = _gamma;

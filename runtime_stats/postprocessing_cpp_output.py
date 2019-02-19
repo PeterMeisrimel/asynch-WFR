@@ -96,7 +96,7 @@ def process_output(path):
             results_comm[rm].append(res_comm_log)
     with open(path + 'results.txt', 'w') as myfile:
         myfile.write(json.dumps(results))
-    if parameters['logging'] == 1:
+    if 'logging' in parameters.keys() and parameters['logging']:
         with open(path + 'comm.txt', 'w') as myfile:
             myfile.write(json.dumps(results_comm))
 
