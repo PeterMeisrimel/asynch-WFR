@@ -9,7 +9,7 @@ BASEDEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 LOCALDEPS = problem_toy.h
 
-_OBJ = waveform.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_toy.o main_toy.o
+_OBJ = waveform.o WFR.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_toy.o main_toy.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 all : TOY

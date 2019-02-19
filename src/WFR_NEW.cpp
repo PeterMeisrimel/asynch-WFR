@@ -9,13 +9,16 @@ December 2018
 #include <stdexcept>
 #include "math.h"
 #include "mpi.h"
+#include "unistd.h"
+#include <cassert>
 
-WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p){
+WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool log){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end = tend;
     prob    = p;
     WF_iters = 0;
+    log_pattern = log;
 }
 
 void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self, int conv_check){
@@ -78,6 +81,14 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
     WF_other_new      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data_new);
     WF_other_new->set_last(u0_other);
 
+    // if logging patterns, allocate necessary memory
+    if (log_pattern){
+        log_p = 0;
+        log_m = 0;
+        iter_per_macro = new int[num_macro];
+        comm_pattern = new bool[WF_MAX_ITER*steps_self];
+    }
+
 	// initialize windows
 	MPI_Win_allocate(sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &IDX_win, &WIN_idx);
 	MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_win, &WIN_data);
@@ -91,9 +102,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
         WF_self ->set(0, u0_self);
 
         WF_other->init_by_last();
-
-        WF_other_new -> get_last(u0_other);
-        WF_other_new -> set(0, u0_other);
+        WF_other_new->init_by_last();
 
         MPI_Barrier(MPI_COMM_WORLD);
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
@@ -129,17 +138,16 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
 		             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		while(true){
       		if(msg_to_recv == IDX){
-      			//MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_idx); // reset IDX in window
-      			//IDX_win[0] = 0;
-                //MPI_Win_unlock(ID_SELF, WIN_idx); 
                 break;
 		    }
             check_new_data();
 		}
 
-        //MPI_Barrier(MPI_COMM_WORLD); // testing, should not be needed, but trying to force full synchronization here
-
-        if (check_convergence(WF_TOL)){
+        if (check_convergence(WF_TOL) or (i == (WF_MAX_ITER - 1))){ // convergence or maximum number of iterations reached
+            if (log_pattern){
+                iter_per_macro[log_m] = i+1;
+                log_m++;
+            }
             break;
         }else{
             WF_self      -> get_last(WF_self_last);
@@ -151,19 +159,31 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
 }
 
 void WFR_NEW::integrate_window(int steps){
-    double t;
+    double t, dt;
 	for(int i = 0; i < steps; i++){ // timestepping loop, explicit euler
         check_new_data();
 
         // make the choice of which waveform to choose from and use linear interpolation			
         // IDX = number of timesteps done by other process, i = number of steps done by own process
-        if(IDX >= i) // other one is further ahead
+        t = WF_self->get_time(i);
+        dt = WF_self->get_time(i+1) - t;
+        // designed for implicit time_integration, implicit euler at the moment
+        if (times_other[IDX] >= t + dt)
             WF_curr = WF_other_new;
         else
             WF_curr = WF_other;
+        
+        // designed for implicit time_integration, implicit euler at the moment
+        if (log_pattern){
+            if (times_other[IDX] >= t + dt)
+                comm_pattern[log_p] = 1;
+            else
+                comm_pattern[log_p] = 0;
+            log_p++;
+        }
+        
         // actual timestep
-        t = WF_self->get_time(i);
-        prob->do_step(t, WF_self->get_time(i+1) - t, (*WF_self)[i+1], WF_curr);
+        prob->do_step(t, dt, (*WF_self)[i+1], WF_curr);
 
 		msg_sent = i+1;
       	// Send out new data to other process
@@ -236,4 +256,40 @@ bool WFR_NEW::check_convergence(double WF_TOL){
             return true;
 	} // end elif first_iter
     return false;
+}
+
+void WFR_NEW::write_log(int macro, int steps){
+    assert(log_pattern == true);
+
+    int log_size = log_p; 
+    int log_size_other = 0;
+    
+    MPI_Sendrecv(&log_size, 1, MPI_INT, ID_OTHER, 0,
+                 &log_size_other, 1, MPI_INT, ID_OTHER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    int timesteps = steps;
+    int timesteps_other = 0;
+
+    MPI_Sendrecv(&timesteps, 1, MPI_INT, ID_OTHER, 1,
+                 &timesteps_other, 1, MPI_INT, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if(ID_SELF == 0){
+        std::cout << "LOG " << ID_SELF << " " << timesteps << " " << macro << " ";
+        for(int i = 0; i < macro; i++)
+            std::cout << iter_per_macro[i] << " ";
+        for(int i = 0; i < log_size; i++)
+            std::cout << comm_pattern[i] << " ";
+        std::cout << std::endl;
+
+        MPI_Recv(comm_pattern, log_size_other, MPI_C_BOOL, ID_OTHER, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        std::cout << "LOG " << ID_OTHER << " " << timesteps_other << " " << macro << " ";
+        for(int i = 0; i < macro; i++)
+            std::cout << iter_per_macro[i] << " ";
+        for(int i = 0; i < log_size_other; i++)
+            std::cout << comm_pattern[i] << " ";
+        std::cout << std::endl;
+    }else{ // ID_SELF == 1
+        MPI_Send(comm_pattern, log_size, MPI_C_BOOL, ID_OTHER, 2, MPI_COMM_WORLD);
+    }
 }

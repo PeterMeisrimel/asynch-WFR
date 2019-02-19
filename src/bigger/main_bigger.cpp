@@ -3,14 +3,13 @@ Authors: Peter Meisrimel
 December 2018
 */
 
+#include "WFR.h"
 #include "WFR_GS.h"
 #include "WFR_JAC.h"
 #include "WFR_NEW.h"
 #include "problem_bigger.h"
 #include "input_reader.h"
 #include "mpi.h"
-#include <iostream>
-#include <iomanip> // set precision
 #include "unistd.h"
 
 int main(int argc, char *argv[]){
@@ -30,13 +29,15 @@ int main(int argc, char *argv[]){
     Problem * prob;
     WFR * wfr_method;
     bool FIRST = false; // for GS
+    // Note, logging formally does not make a lot of sense here, as it is build around implicit time-integration
+    bool logging = false;
 
     // default running parameters
     double WF_TOL = 1e-10;
     int WF_MAXITER = 50;
     int num_macro = 5;
 
-	process_inputs(argc, argv, runmode, WF_TOL, timesteps1, timesteps2, num_macro, WF_MAXITER);
+	process_inputs(argc, argv, runmode, WF_TOL, timesteps1, timesteps2, num_macro, WF_MAXITER, logging);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
@@ -46,7 +47,6 @@ int main(int argc, char *argv[]){
         timesteps = timesteps2;
         prob = new Problem_bigger_part_2();
     }
-    double * sol = new double[prob->get_length()];
 
 	switch(runmode){
 		case 1:
@@ -60,12 +60,8 @@ int main(int argc, char *argv[]){
 			break;
     }
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);
-    wfr_method -> get_sol(sol);
 
-    std::cout << std::setprecision(14) << ID_SELF << " " << wfr_method -> get_WF_iters() << " " << wfr_method -> get_runtime() << " ";
-	for(int i = 0; i < prob->get_length(); i++)
-        std::cout << std::setprecision(14) << sol[i] << " ";
-    std::cout << std::endl;
+    wfr_method -> write_results();
 
     MPI_Finalize();
 	return 0;

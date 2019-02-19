@@ -3,6 +3,7 @@ Authors: Peter Meisrimel
 December 2018
 */
 
+#include "WFR.h"
 #include "WFR_GS.h"
 #include "WFR_JAC.h"
 #include "WFR_NEW.h"
@@ -11,8 +12,6 @@ December 2018
 #include "problem_heat_N.h"
 #include "mpi.h"
 #include "dolfin.h"
-#include <iostream>
-#include <iomanip> // set precision
 #include "unistd.h"
 
 int main(int argc, char *argv[]){
@@ -37,6 +36,7 @@ int main(int argc, char *argv[]){
     Problem * prob;
     WFR * wfr_method;
     bool FIRST = false; // for GS
+    bool logging = false;
 
     // default running parameters
     double WF_TOL = 1e-6;
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]){
 	double gamma1 = gamma;
 	double gamma2 = gamma;
 
-	process_inputs(argc, argv, runmode, WF_TOL, timesteps1, timesteps2, num_macro, WF_MAXITER);
+	process_inputs(argc, argv, runmode, WF_TOL, timesteps1, timesteps2, num_macro, WF_MAXITER, logging);
 	process_inputs_heat(argc, argv, alpha1, alpha2, gamma1, gamma2, gridsize1, gridsize2);
 
     if (ID_SELF == 0){
@@ -69,7 +69,6 @@ int main(int argc, char *argv[]){
 		gridsize = gridsize2;
         prob = new Problem_heat_N(gridsize, alpha, gamma);
     }
-    double * sol = new double[prob->get_length()];
 
 	switch(runmode){
 		case 1:
@@ -79,12 +78,16 @@ int main(int argc, char *argv[]){
 			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, logging);
 			break;
 	}
 
-    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -2);
-    std::cout << std::setprecision(14) << "id " << ID_SELF << ", Iterations: " << wfr_method -> get_WF_iters() << " runtime: " << wfr_method->get_runtime() << std::endl;
+    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -1);
+
+    wfr_method -> write_results();
+
+    if(logging)
+        wfr_method -> write_log(num_macro, timesteps);
 
 	return 0;
 }

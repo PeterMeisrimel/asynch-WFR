@@ -29,7 +29,6 @@ private:
     const DirichletBC * _BC_inft;
     std::vector<const DirichletBC *> _bcs;
   
-    //std::shared_ptr<Function> _rhs_f;
     std::shared_ptr<Function> _unew_flux;
     Function * _flux_function;
     std::shared_ptr<InterpolatedExpression> _interface_vals;

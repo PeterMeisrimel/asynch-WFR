@@ -1,7 +1,15 @@
-Proper verification of all problems, toy and bigger are manually verified so far, heat_DN not verified at all
-
 Proper documentation, using doxygen?
 
 Properly free all allocated memory when done
 
-timings for small problems have seemingly high variance
+update readme
+
+heat equation does not work for certain gridsizes at the moment, powers of 2 (16, 32, 64, ...) seem to work fine
+
+verify heat equation using different heat paramters
+
+test and verify using different timestepsizes
+
+switch from implicit euler to Crank Nicolson
+
+test other implementations for new method using mpi_get

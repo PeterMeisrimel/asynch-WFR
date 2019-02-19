@@ -26,7 +26,6 @@ private:
     const DirichletBC * _BC;
     std::vector<const DirichletBC *> _bcs;
   
-    //std::shared_ptr<Function> _rhs_f;
     std::shared_ptr<InterpolatedExpression> _fluxx;
 public:
     // gridsize, alpha, gamma, const for u0

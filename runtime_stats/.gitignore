@@ -1,3 +1,6 @@
 plots*
 output*
 results*
+old
+run_toy_impl
+__pycache__

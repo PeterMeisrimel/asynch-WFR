@@ -131,6 +131,7 @@ bool WFR_synch::check_convergence(double WF_TOL){
                 throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
+        //std::cout << "id: " << ID_SELF << " " << update << std::endl;
         if (update < WF_TOL)
             return true;
     }// END ELSE

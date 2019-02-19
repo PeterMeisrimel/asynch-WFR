@@ -17,6 +17,7 @@ const int TAG_DONE = 4;
 #define WFR_H_
 
 #include "problem.h"
+#include <iostream>
 
 class WFR{
 protected:
@@ -50,6 +51,12 @@ public:
     virtual void get_sol(double * out){ return WF_self->get_last(out);}; // obtain solution
     int get_WF_iters(){ return WF_iters;}; // obtain total number of waveform iteration
     double get_runtime(){ return runtime;}; // obtain runtime, not including initialization
+
+    void write_results();
+    virtual void write_log(int a, int b){
+        if (ID_SELF == 0)
+            std::cout << "LOG NONE" << std::endl << "LOG NONE" << std::endl;
+    };
 };
 
 #endif // WFR_GS_H_

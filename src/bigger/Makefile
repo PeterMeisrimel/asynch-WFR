@@ -9,7 +9,7 @@ BASEDEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 LOCALDEPS = problem_bigger.h
 
-_OBJ = waveform.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_bigger.o main_bigger.o
+_OBJ = waveform.o WFR.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_bigger.o main_bigger.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 all : BIGGER

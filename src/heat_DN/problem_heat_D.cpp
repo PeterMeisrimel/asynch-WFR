@@ -7,6 +7,8 @@ September 2018
 #include "problem_heat.h"
 #include <iostream>
 #include "unistd.h"
+#include <algorithm>    // std::min, std::max
+#include <iomanip> // set precision
 
 Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c) : Problem_heat(gridsize, a, g, const_c, 0.0, 0.0){
     other_init_done = false;
@@ -38,7 +40,7 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c)
     _unew->vector() = _uold->vector();
 
     _flux_function = new Function(_V);
-    _flux_vec = new Vector(MPI_COMM_SELF, (_N+1)*(_N+1)); // Is this too large or just right?
+    _flux_vec = new Vector(MPI_COMM_SELF, _length*_length);
     _flux_vec -> zero();
 
     get_flux(1., _u0);
@@ -57,21 +59,8 @@ void Problem_heat_D::init_other(int len_other){
 
 // compute fluxes
 void Problem_heat_D::get_flux(double dt, double * flux_out){
-    //std::cout << "GETTING FLUXES" << std::endl;
-	*_dt = dt;
-    _unew_flux -> vector() = _unew -> vector();
-    assemble(*_flux_vec, *_heat_flux_form);
-	//std::cout << "printing flux_vec : " << (*_flux_vec)[0] << " " << (*_flux_vec)[1] << std::endl;
-    *_flux_vec /= _dx;
-	//std::cout << "DX : " << _dx << std::endl;
-    *(_flux_function -> vector()) = *_flux_vec;
-	//std::cout << "flux values : " << std::endl;
-    for(int i = 0; i < _length; i++){
-        flux_out[i] = (*_flux_function)(1, i*_dx);
-		//std::cout << i << "  " << flux_out[i] << std::endl;
-	}
-	//std::cout << std::endl;
-	//sleep(5);
+    for(int i = 0; i < _length; i++)
+        flux_out[i] = (*_gamma)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx;
 }
 
 // implicit Euler
@@ -85,6 +74,5 @@ void Problem_heat_D::do_step(double t, double dt, double * unew, Waveform * WF_i
 
     get_flux(dt, unew);
 
-    //_uold->vector() = _unew->vector(); // internal update
     *_uold->vector() = *(_unew -> vector());
 }
