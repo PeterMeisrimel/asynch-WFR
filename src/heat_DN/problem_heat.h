@@ -29,10 +29,13 @@ protected:
     std::shared_ptr<Function> _uold;
     std::shared_ptr<Function> _ucheckpoint;
     Function * _unew;
-    std::shared_ptr<Function> _rhs_f;
+    std::shared_ptr<Function> _rhs_fold;
+    std::shared_ptr<Function> _rhs_fnew;
 
     heat::BilinearForm * _a;
     heat::LinearForm   * _L;
+
+    double * _uother_old, * _uother_new;
 
 public:
     Problem_heat(int, double, double, double, double, double);
@@ -43,7 +46,8 @@ public:
     void reset_to_checkpoint(){
         *_uold -> vector() = *_ucheckpoint -> vector();
     }
-    double * get_uother_p(){return _uother;}; // returns pointer to _uother
+    double * get_uother_old_p(){return _uother_old;};
+    double * get_uother_new_p(){return _uother_new;};
 };
 
 #endif //PROBLEM_HEAT_H_

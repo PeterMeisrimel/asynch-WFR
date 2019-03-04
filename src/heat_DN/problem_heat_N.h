@@ -26,7 +26,8 @@ private:
     const DirichletBC * _BC;
     std::vector<const DirichletBC *> _bcs;
   
-    std::shared_ptr<InterpolatedExpression> _fluxx;
+    std::shared_ptr<InterpolatedExpression> _fluxx_old;
+    std::shared_ptr<InterpolatedExpression> _fluxx_new;
 public:
     // gridsize, alpha, gamma, const for u0
     Problem_heat_N(int, double, double, double = 500);
