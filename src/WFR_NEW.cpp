@@ -74,13 +74,6 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
     WF_other      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data);
     WF_other->set_last(u0_other);
 
-    double window_length = _t_end/num_macro;
-
-	// Waveform iteration specific stuff
-    WF_other_data_new = new double[WF_LEN_OTHER * DIM_OTHER];
-    WF_other_new      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data_new);
-    WF_other_new->set_last(u0_other);
-
     // if logging patterns, allocate necessary memory
     if (log_pattern){
         log_p = 0;
@@ -89,6 +82,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
         comm_pattern = new bool[WF_MAX_ITER*steps_self];
     }
 
+    double window_length = _t_end/num_macro;
 	// initialize windows
 	MPI_Win_allocate(sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &IDX_win, &WIN_idx);
 	MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_win, &WIN_data);
@@ -102,13 +96,12 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
         WF_self ->set(0, u0_self);
 
         WF_other->init_by_last();
-        WF_other_new->init_by_last();
 
         MPI_Barrier(MPI_COMM_WORLD);
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != num_macro - 1){
             WF_self  -> time_shift(window_length);
-            WF_other -> time_shift(window_length); // NOTE FOR FUTURE: WF_other and WF_other_new share same time vector, hence only 1 shift here
+            WF_other -> time_shift(window_length);
         }
 	} // endfor macrostep loop
 	runtime = MPI_Wtime() - runtime; // runtime measurement end
@@ -127,23 +120,19 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
 		IDX_win[0] = 0;
 		MPI_Win_unlock(ID_SELF, WIN_idx);
 
-        MPI_Barrier(MPI_COMM_WORLD); // make sure both markers have been properly reset, probably can be put somewhere else?
+        // make sure both markers have been properly reset
+        // otherwise first update may come in before reset took place
+        MPI_Barrier(MPI_COMM_WORLD);
 
 		msg_to_recv = 0;
         integrate_window(steps_per_window);
 
-        // Yes, this part is actually necessary, for some reason, to force synchronization
-		MPI_Sendrecv(&msg_sent, 1, MPI_INT, ID_OTHER, TAG_DONE,
-		             &msg_to_recv, 1, MPI_INT, ID_OTHER, TAG_DONE,
-		             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		while(true){
-      		if(msg_to_recv == IDX){
-                break;
-		    }
-            check_new_data();
-		}
+        // all outstanding RMA operations done up to this point
+        MPI_Barrier(MPI_COMM_WORLD);
+        check_new_data(); // copy over data from window to local memory
 
         if (check_convergence(WF_TOL) or (i == (WF_MAX_ITER - 1))){ // convergence or maximum number of iterations reached
+            //std::cout << ID_SELF << " Convergence, hooray, after " << i+1 << " Iterations" << std::endl;
             if (log_pattern){
                 iter_per_macro[log_m] = i+1;
                 log_m++;
@@ -151,8 +140,7 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
             break;
         }else{
             WF_self      -> get_last(WF_self_last);
-            WF_other_new -> get_last(WF_other_last);
-            WF_swap_data_pointers(WF_other, WF_other_new);
+            WF_other -> get_last(WF_other_last);
             prob -> reset_to_checkpoint();
         }
     } // endfor waveform loop
@@ -160,20 +148,16 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
 
 void WFR_NEW::integrate_window(int steps){
     double t, dt;
-	for(int i = 0; i < steps; i++){ // timestepping loop, explicit euler
+	for(int i = 0; i < steps; i++){ // timestepping loop
         check_new_data();
 
         // make the choice of which waveform to choose from and use linear interpolation			
         // IDX = number of timesteps done by other process, i = number of steps done by own process
         t = WF_self->get_time(i);
         dt = WF_self->get_time(i+1) - t;
-        // designed for implicit time_integration, implicit euler at the moment
-        if (times_other[IDX] >= t + dt)
-            WF_curr = WF_other_new;
-        else
-            WF_curr = WF_other;
         
-        // designed for implicit time_integration, implicit euler at the moment
+        // designed for implicit time_integration in current form
+        // TODO: figure out better method to accurately show percentage of new data being involved?
         if (log_pattern){
             if (times_other[IDX] >= t + dt)
                 comm_pattern[log_p] = 1;
@@ -183,7 +167,7 @@ void WFR_NEW::integrate_window(int steps){
         }
         
         // actual timestep
-        prob->do_step(t, dt, (*WF_self)[i+1], WF_curr);
+        prob->do_step(t, dt, (*WF_self)[i+1], WF_other);
 
 		msg_sent = i+1;
       	// Send out new data to other process
@@ -202,13 +186,15 @@ void WFR_NEW::check_new_data(){
     // check for new messages by index, lock own window and check for updates
     IDX_aux = IDX;
     MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_idx); // Shared as it is read only
+    MPI_Win_sync(WIN_idx);
     IDX = IDX_win[0];
     MPI_Win_unlock(ID_SELF, WIN_idx);
     // if new data available, lock data window and copy data to local
 	if(IDX > IDX_aux){
         MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
+        MPI_Win_sync(WIN_data);
         for(int h = (IDX_aux + 1); h <= IDX; h++) // start at old max IDX + 1 until (inclusive) new index
-            WF_other_new -> set(h, (*WF_win)[h]);
+            WF_other -> set(h, (*WF_win)[h]);
         MPI_Win_unlock(ID_SELF, WIN_data);
 	}
 }
@@ -220,7 +206,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
         switch(conv_which){
             case 0:{ // usual 2-norm
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
-                up_other = WF_other_new->get_err_norm_sq_last(WF_other_last);
+                up_other = WF_other->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(up_self + up_other);
                 break;
             }
@@ -228,7 +214,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 double w_self  = float(DIM_SELF)  / float(DIM_SELF + DIM_OTHER);
                 double w_other = float(DIM_OTHER) / float(DIM_SELF + DIM_OTHER);
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
-                up_other = WF_other_new->get_err_norm_sq_last(WF_other_last);
+                up_other = WF_other->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(w_self*up_self + w_other*up_other);
                 break;
             }
@@ -236,7 +222,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 if (ID_SELF == 0)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else
-                    up_self  = WF_other_new ->get_err_norm_sq_last(WF_other_last);
+                    up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
                 update = sqrt(up_self);
                 break;
             }
@@ -244,7 +230,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 if (ID_SELF == 1)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else
-                    up_self  = WF_other_new ->get_err_norm_sq_last(WF_other_last);
+                    up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
                 update = sqrt(up_self);
                 break;
             }

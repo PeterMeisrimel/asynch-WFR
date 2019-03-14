@@ -20,13 +20,10 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c)
 
     _bcs.push_back(_BC);
 
-    _rhs_fold = std::make_shared<Function>(_V);
-    _rhs_fnew = std::make_shared<Function>(_V);
+    _rhs_f = std::make_shared<Function>(_V);
     Constant const_0(0.0);
-    _rhs_fold -> interpolate(const_0);
-    _rhs_fnew -> interpolate(const_0);
-    _L -> fold = _rhs_fold;
-    _L -> fnew = _rhs_fnew;
+    _rhs_f -> interpolate(const_0);
+    _L -> f = _rhs_f;
 
     // setting up everything for computing fluxes
     _unew_flux = std::make_shared<Function>(_V);
@@ -53,7 +50,7 @@ void Problem_heat_D::init_other(int len_other){
 		_BC_inft = new DirichletBC(_V, _interface_vals, _dirichlet_boundary_inft);
 		_bcs.push_back(_BC_inft);
         _length_other = len_other;
-        _uother_old = new double[len_other];
+        _uother = new double[len_other];
         other_init_done = true;
     }
 };
@@ -66,9 +63,9 @@ void Problem_heat_D::get_flux(double dt, double * flux_out){
 
 // implicit Euler
 void Problem_heat_D::do_step(double t, double dt, double * unew, Waveform * WF_in){
-    // dirichlet boundary condition linear in time, thus use midpoint for CN
-    WF_in -> eval(t + 0.5*dt, _uother_old);
-    _interface_vals -> set_vals(get_uother_old_p());
+    // t + dt as we do implicit euler
+    WF_in -> eval(t + dt, _uother);
+    _interface_vals -> set_vals(get_uother_p());
 	_L -> u0 = _uold;
 	*_dt = dt;
 	solve(*_a == *_L, *_unew, _bcs);

@@ -13,9 +13,8 @@ u0 = Coefficient(element)
 alpha = Constant(cell)
 gamma = Constant(cell)
 dt = Constant(cell)
-fold = Coefficient(element)
-fnew = Coefficient(element)
+f = Coefficient(element)
 
-eq = alpha*u*v*dx - alpha*u0*v*dx + 0.5*gamma*dt*dot(grad(u) + grad(u0), grad(v))*dx + 0.5*dt*(fold + fnew)*v*ds
+eq = alpha*u*v*dx - alpha*u0*v*dx + gamma*dt*dot(grad(u), grad(v))*dx + dt*f*v*ds
 a = lhs(eq)
 L = rhs(eq)

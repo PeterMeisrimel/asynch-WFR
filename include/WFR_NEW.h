@@ -11,12 +11,13 @@ December 2018
 #include "WFR.h"
 
 class WFR_NEW : public WFR{
+// only using put operations here
 private:
     int msg_sent, msg_to_recv;
     int IDX, IDX_aux, * IDX_win;
 
-    double *WF_other_data_new, *WF_other_data_win;
-    Waveform *WF_other_new, *WF_win, *WF_curr;
+    double *WF_other_data_win;
+    Waveform *WF_win;
 
     MPI_Win WIN_data, WIN_idx;
 
