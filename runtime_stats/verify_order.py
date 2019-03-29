@@ -13,6 +13,7 @@ import os
 import json
 import numpy as np
 import pylab as pl
+import datetime
 pl.close('all')
 
 tol = 1e-6
@@ -21,9 +22,12 @@ name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
 exe = 'heat_DN'
 
+time_string = str(datetime.datetime.now()).replace(' ', '_')
+time_string = time_string.replace(':', '_')
+
 if not os.path.exists('output'):
     os.makedirs('output')
-output_dir = 'output/order_verification_{}'.format(name)
+output_dir = 'output/order_verification_{}_{}'.format(name, time_string)
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 #########
@@ -31,7 +35,7 @@ output_parameters = '{}/parameters.txt'.format(output_dir)
 out_files = {'files': []}
 
 print('Starting order verification run...')
-steps_list = [2**i for i in range(13)]
+steps_list = [2**i for i in range(11)]
 for steps in steps_list:
     parameters = {'timesteps1' : steps, 'timesteps2' : steps, 'macrosteps': 1, 'maxiter': 1000,
                   'gridsize': gridsize, 'alpha1': 1, 'alpha2': 1, 'gamma1': 0.01, 'gamma2': 0.01,
@@ -82,13 +86,13 @@ if not os.path.exists(plot_path):
 fig, ax = pl.subplots(figsize = (12, 10))
 
 fs = 32
-style = {'linestyle': '-', 'lw': 2}
+style = {'linestyle': '-', 'lw': 3, 'markersize': 17}
 
 ax.loglog(steps_list[:-1], errors1, color = 'g', marker = 'o', label = 'Flux error', **style)
 ax.loglog(steps_list[:-1], errors2, color = 'b', marker = 'd', label = 'Interface temp error', **style)
 ax.loglog(steps_list, [1/i for i in steps_list], '--k', label = 'Order 1')
 ax.loglog(steps_list, [1/i**2 for i in steps_list], ':k', label = 'Order 2')
-ax.axhline(tol, color = 'r', label = 'WFR Tol')
+ax.axhline(tol, color = 'r', label = 'WFR Tol', **style)
 ax.grid(b = True, which = 'major')
         
 ax.set_title('Order verification', fontsize = fs + 2)

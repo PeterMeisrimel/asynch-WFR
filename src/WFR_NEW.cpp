@@ -218,7 +218,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 update   = sqrt(w_self*up_self + w_other*up_other);
                 break;
             }
-            case -1:{
+            case -1:{ // taking norm of values of p0
                 if (ID_SELF == 0)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else
@@ -226,7 +226,7 @@ bool WFR_NEW::check_convergence(double WF_TOL){
                 update = sqrt(up_self);
                 break;
             }
-            case -2:{
+            case -2:{ // taking norm of values of p1
                 if (ID_SELF == 1)
                     up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
                 else

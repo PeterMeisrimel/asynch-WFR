@@ -5,8 +5,6 @@ September 2018
 
 #include "problem_heat_D.h"
 #include "problem_heat.h"
-#include <algorithm>    // std::min, std::max
-#include <iomanip> // set precision
 
 Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c) : Problem_heat(gridsize, a, g, const_c, 0.0, 0.0){
     other_init_done = false;
@@ -20,10 +18,13 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c)
 
     _bcs.push_back(_BC);
 
-    _rhs_f = std::make_shared<Function>(_V);
+    _rhs_fold = std::make_shared<Function>(_V);
+    _rhs_fnew = std::make_shared<Function>(_V);
     Constant const_0(0.0);
-    _rhs_f -> interpolate(const_0);
-    _L -> f = _rhs_f;
+    _rhs_fold -> interpolate(const_0);
+    _rhs_fnew -> interpolate(const_0);
+    _L -> fold = _rhs_fold;
+    _L -> fnew = _rhs_fnew;
 
     // setting up everything for computing fluxes
     _unew_flux = std::make_shared<Function>(_V);
@@ -50,7 +51,7 @@ void Problem_heat_D::init_other(int len_other){
 		_BC_inft = new DirichletBC(_V, _interface_vals, _dirichlet_boundary_inft);
 		_bcs.push_back(_BC_inft);
         _length_other = len_other;
-        _uother = new double[len_other];
+        _uother_old = new double[len_other];
         other_init_done = true;
     }
 };
@@ -61,16 +62,14 @@ void Problem_heat_D::get_flux(double dt, double * flux_out){
         flux_out[i] = (*_gamma)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx;
 }
 
-// implicit Euler
 void Problem_heat_D::do_step(double t, double dt, double * unew, Waveform * WF_in){
-    // t + dt as we do implicit euler
-    WF_in -> eval(t + dt, _uother);
-    _interface_vals -> set_vals(get_uother_p());
+    WF_in -> eval(t + dt, _uother_old);    
+
+    _interface_vals -> set_vals(get_uother_old_p());
 	_L -> u0 = _uold;
 	*_dt = dt;
 	solve(*_a == *_L, *_unew, _bcs);
 
-    get_flux(dt, unew);
-
     *_uold->vector() = *(_unew -> vector());
+    get_flux(dt, unew);
 }
