@@ -13,7 +13,7 @@ September 2018
 #include "dolfin.h"
 #include "mpi.h"
 #include "heat.h" // generated from heat.cfl
-#include "heat_flux.h" // generated from heat_flux.cfl
+//#include "heat_flux.h" // generated from heat_flux.cfl
 
 using namespace dolfin;
 
@@ -33,14 +33,14 @@ private:
     Function * _flux_function;
     std::shared_ptr<InterpolatedExpression> _interface_vals;
 
-    heat_flux::LinearForm * _heat_flux_form;
+    //heat_flux::LinearForm * _heat_flux_form;
 
     Vector * _flux_vec;
 
     void get_flux(double, double*);
 public:
     // gridsize, alpha, gamma, const for u0
-    Problem_heat_D(int, double, double, double = 500);
+    Problem_heat_D(int, double, double, double = 500, int = 0);
 
     void init_other(int);
     // t, dt, unew (out), WF

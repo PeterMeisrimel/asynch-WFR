@@ -6,7 +6,7 @@ September 2018
 #include "problem_heat_D.h"
 #include "problem_heat.h"
 
-Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c) : Problem_heat(gridsize, a, g, const_c, 0.0, 0.0){
+Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c, int which) : Problem_heat(gridsize, a, g, const_c, 0.0, 0.0, which){
     other_init_done = false;
     _length = _N + 1;
     _u0 = new double[_length];
@@ -28,14 +28,14 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c)
 
     // setting up everything for computing fluxes
     _unew_flux = std::make_shared<Function>(_V);
-
+	/*
     _heat_flux_form = new heat_flux::LinearForm(_V);
     _heat_flux_form -> dt    = _dt;
     _heat_flux_form -> alpha = _alpha;
     _heat_flux_form -> gamma = _gamma;
     _heat_flux_form -> uold  = _uold;
     _heat_flux_form -> unew  = _unew_flux;
-
+	*/
     _unew->vector() = _uold->vector();
 
     _flux_function = new Function(_V);

@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
 	int runmode = 1;
     Problem * prob;
     WFR * wfr_method;
-    bool FIRST = false; // for GS
+    bool FIRST = true; // for GS
     // Note, logging formally does not make a lot of sense here, as it is build around implicit time-integration
     bool logging = false;
 
@@ -40,16 +40,17 @@ int main(int argc, char *argv[]){
     double WF_TOL = 1e-10;
     int WF_MAXITER = 50;
     int num_macro = 5;
+    int u0 = 0;
 
-	process_inputs(argc, argv, runmode, WF_TOL, timesteps1, timesteps2, num_macro, WF_MAXITER, logging);
+	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, logging, FIRST, u0);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
         prob = new Problem_toy_part_1();
-        FIRST = true;
     }else{
         timesteps = timesteps2;
         prob = new Problem_toy_part_2();
+        FIRST = not FIRST;
     }
 
 	switch(runmode){

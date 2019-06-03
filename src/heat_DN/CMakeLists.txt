@@ -18,7 +18,7 @@ find_package(DOLFIN REQUIRED)
 include_directories(../../include)
 include_directories(../)
 
-set(SOURCES_BASE ../waveform.cpp ../WFR_GS.cpp ../WFR_JAC.cpp ../WFR_NEW.cpp ../WFR_synch.cpp ../input_reader.cpp ../WFR.cpp)
+set(SOURCES_BASE ../waveform.cpp ../waveform_locking.cpp ../WFR_GS.cpp ../WFR_JAC.cpp ../WFR_NEW.cpp ../WFR_synch.cpp ../input_reader.cpp ../WFR.cpp)
 set(SOURCES_LOCAL problem_heat.cpp problem_heat_D.cpp problem_heat_N.cpp)
  
 include(${DOLFIN_USE_FILE})
@@ -40,6 +40,9 @@ endif()
 # Executable
 add_executable(${PROJECT_NAME} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
 target_link_libraries(${PROJECT_NAME} dolfin)
+
+add_executable(heat_DN_log main_heat_logging.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
+target_link_libraries(heat_DN_log dolfin)
 
 # Test targets
 set(test_parameters -np 2 ${MPIEXEC_PARAMS} "./${PROJECT_NAME}")

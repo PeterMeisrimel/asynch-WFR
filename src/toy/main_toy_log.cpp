@@ -1,24 +1,28 @@
 /*
 Authors: Peter Meisrimel
-December 2018
+May 2019
 */
 
 #include "WFR.h"
 #include "WFR_GS.h"
 #include "WFR_JAC.h"
 #include "WFR_NEW.h"
-#include "problem_bigger.h"
+#include "problem_toy.h"
 #include "input_reader.h"
 #include "mpi.h"
 #include "unistd.h"
 
 int main(int argc, char *argv[]){
+	// the usual MPI initialization
 	MPI_Init(&argc, &argv);
-
 	int np, ID_SELF, ID_OTHER;
     MPI_Comm_rank(MPI_COMM_WORLD, &ID_SELF);
     MPI_Comm_size(MPI_COMM_WORLD, &np);
 	ID_OTHER = (ID_SELF + 1)%np;
+
+    // require exactly 2 processes
+    if (np != 2)
+        return 1;
 
     // Default init parameters for problems
     double t_end = 2;
@@ -40,29 +44,32 @@ int main(int argc, char *argv[]){
 
 	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, logging, FIRST, u0);
 
+    t_end /= num_macro;
+    num_macro = 1;
+
     if (ID_SELF == 0){
         timesteps = timesteps1;
-        prob = new Problem_bigger_part_1();
+        prob = new Problem_toy_part_1();
     }else{
         timesteps = timesteps2;
-        prob = new Problem_bigger_part_2();
+        prob = new Problem_toy_part_2();
         FIRST = not FIRST;
     }
 
 	switch(runmode){
 		case 1:
-		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST);
+		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, true);
 			break;
 		case 2:
-			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, true);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, true);
 			break;
-    }
-    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);
-
-    wfr_method -> write_results();
+	}
+    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 0);
+    
+    wfr_method -> write_error_log();
 
     MPI_Finalize();
 	return 0;

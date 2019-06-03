@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     Problem * prob;
     WFR * wfr_method;
     bool FIRST = true; // for GS
-    bool logging = false;
+    bool logging = true;
 	int which_u0 = 0;
 
     // default running parameters
@@ -73,23 +73,20 @@ int main(int argc, char *argv[]){
 
 	switch(runmode){
 		case 1:
-		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST);
+		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, logging);
 			break;
 		case 2:
-			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, logging);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, logging);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, logging, logging); // fix normal log stuff
 			break;
 	}
 
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -2);
 	//wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -1);
-
-    wfr_method -> write_results();
-
-    //if(logging)
-    //    wfr_method -> write_log(num_macro, timesteps);
+	MPI_Barrier(MPI_COMM_WORLD);
+    wfr_method -> write_error_log();
 
 	return 0;
 }

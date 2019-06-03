@@ -9,7 +9,7 @@ January 2019
 #include <stdlib.h> // string to double conversion
 #include <stdexcept>
 
-void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter, bool& logging){
+void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter, bool& logging, bool& FIRST, int& which_u0){
 	assert( argc % 2 == 1);
 
 	for(int i = 1; i < argc; i+=2){
@@ -25,6 +25,8 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& ti
 			else
 				throw std::invalid_argument("invalid runmode, check your spelling");
 		}
+		else if(arg == "-tend")
+			t_end = atof(argv[i+1]);
 		else if(arg == "-wftol")
 			WF_TOL = atof(argv[i+1]);
 		else if (arg == "-timesteps1")
@@ -41,6 +43,10 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, int& ti
 			maxiter = atoi(argv[i+1]);
         else if (arg == "-logging")
             logging = atoi(argv[i+1]);
+        else if (arg == "-first")
+            FIRST = bool(atoi(argv[i+1]));
+        else if (arg == "-u0")
+            which_u0 = atoi(argv[i+1]);
 	}
 }
 
@@ -50,8 +56,8 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
 	for(int i = 1; i < argc; i+=2){
 		std::string arg = argv[i];
 		if (arg == "-alpha"){
-			alpha1 = atoi(argv[i+1]);
-			alpha2 = atoi(argv[i+1]);
+			alpha1 = atof(argv[i+1]);
+			alpha2 = atof(argv[i+1]);
 		}
         else if (arg == "-alpha1")
 			alpha1 = atof(argv[i+1]);
@@ -66,8 +72,8 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
 		else if (arg == "-gamma2")
 			gamma2 = atof(argv[i+1]);
 		else if (arg == "-gridsize"){
-			gridsize1 = atof(argv[i+1]);
-			gridsize2 = atof(argv[i+1]);
+			gridsize1 = atoi(argv[i+1]);
+			gridsize2 = atoi(argv[i+1]);
         }
         else if (arg == "-gridsize1")
 			gridsize1 = atoi(argv[i+1]);

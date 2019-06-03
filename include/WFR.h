@@ -41,18 +41,26 @@ protected:
     int WF_iters;
 
     double runtime;
+    bool log_errors;
+    int err_log_counter;
+    double * error_log;
+
+    double rel_update_fac;
 
     virtual void do_WF_iter        (double, int, int, int) = 0; // tol, maxiter, steps_self, steps_other
     virtual void integrate_window  (int)                   = 0; // steps_self
-    virtual bool check_convergence (double)                = 0; // tol
 public:
     virtual void run               (double, int, int, int, int = 1) = 0; // tol, maxiter, macro_steps, steps_self, conv_which
-    
+    virtual bool check_convergence (double); // checking convergence, input: tolerance, ouput: true/false
+    virtual void get_relative_tol();
     virtual void get_sol(double * out){ return WF_self->get_last(out);}; // obtain solution
     int get_WF_iters(){ return WF_iters;}; // obtain total number of waveform iteration
     double get_runtime(){ return runtime;}; // obtain runtime, not including initialization
 
     void write_results();
+    void init_error_log(int, int);
+    void update_error_log();
+    void write_error_log();
     virtual void write_log(int a, int b){
         if (ID_SELF == 0)
             std::cout << "LOG NONE" << std::endl << "LOG NONE" << std::endl;

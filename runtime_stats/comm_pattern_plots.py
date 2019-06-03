@@ -11,6 +11,8 @@ import numpy as np
 import pylab as pl
 import json
 
+############### non functioning for now
+
 def plot_comm_pattern(path):
     parameters = {}
     with open(path + 'parameters.txt', 'r') as myfile:

@@ -12,7 +12,10 @@ import subprocess
 import datetime
 import json
 
-def run_tolerances(folder, exe, name, times = 10, tolerances = None, parameters = None, runmodes = None):
+def run_tolerances(folder, exe, name, times = 10, tolerances = None,
+                   parameters = None, runmodes = None,
+                   first = None, run_names = None, ref_run_name = 'GS',
+                   labels = None):
     
     if runmodes is None:
         runmodes = ['GS', 'JAC', 'NEW']
@@ -20,11 +23,30 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None, parameters 
         tolerances = [10**(-i) for i in range(6)]
     if parameters is None:
         parameters = {'timesteps1' : 100, 'timesteps2' : 100, 'macrosteps': 5, 'maxiter': 50}
+    if first is None:
+        first = [True]*len(runmodes)
+    if run_names is None:
+        run_names = runmodes
+    if labels is None:
+        labels = run_names
+        
+        
+    for rr in run_names:
+        if ' ' in run_names:
+            raise ValueError('spaces in run_names not permitted')
+        
+    parameters_run = parameters.copy()
+    parameters['runmodes'] = runmodes
+    parameters['folder'] = folder
+    parameters['executable'] = exe
+    parameters['name'] = name
+    parameters['run_names'] = run_names
+    parameters['reference_sol'] = ref_run_name
+    parameters['labels'] = labels
         
     tt = times
     #########
-    time_string = str(datetime.datetime.now()).replace(' ', '_')
-    time_string = time_string.replace(':', '_')
+    time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')
     #########
     # create output directory
     if not os.path.exists('output'):
@@ -41,20 +63,22 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None, parameters 
     out_files = {'files': []}
     
     for v, tol in enumerate(tolerances):
-        parameters['wftol'] = tol
-        parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])
-        for r in runmodes:
+        parameters_run['wftol'] = tol
+        parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters_run[key]) for key in parameters_run.keys()])
+        for w, r in enumerate(runmodes):
+            parameter_string_full = parameter_string + ' -first ' + str(int(first[w]))
             if v == len(tolerances) - 1 :
-                if r != 'GS':
+                if run_names[w] != ref_run_name:
                     continue
                 else:
                     times = 1
-            out_f = output_dir + '/' + str(r) + '_' + str(tol) + '.txt'
+            out_f = output_dir + '/' + str(run_names[w]) + '_' + str(tol) + '.txt'
             out_files['files'].append(out_f)
             
             run_string = ('mpirun -np 2 ../src/' + folder + '/' + exe +
-                         ' -runmode ' + r + ' ' + parameter_string + ' >> ' + out_f + '\n')
-            print('running', r, 'for tolerance of', tol)
+                         ' -runmode ' + r + ' ' + parameter_string_full + ' >> ' + out_f + '\n')
+            #print(run_string)
+            print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)
             for i in range(times):
                 subprocess.call(run_string, shell = True)
                 
@@ -64,7 +88,6 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None, parameters 
     parameters['runmodes'] = runmodes
     parameters['tolerances'] = tolerances
     parameters['times'] = tt        
-    del parameters['wftol']
     
     with open(output_parameters, 'w') as myfile:
         myfile.write(json.dumps(parameters, indent = 4, sort_keys = True))

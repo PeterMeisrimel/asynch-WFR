@@ -47,17 +47,18 @@ def process_output(path):
         parameters = json.load(myfile)
         
     results, results_comm = {}, {}
-    runmodes = parameters['runmodes'] + ['REF']
-    for r in runmodes:
+    run_names = parameters['run_names'] + ['REF']
+    for r in run_names:
         results[r] = []
-        if r not in ['JAC', 'GS', 'REF']:
+        if 'NEW' not in r:
             results_comm[r] = []
     
     for file in files:
         res = {}
         f = cut_path(file[:-4])
-        rm, tol = f.split('_')
-        tol = float(tol)
+        splitted = f.split('_')
+        rm = '_'.join(splitted[:-1]) # in case name contains _
+        tol = float(splitted[-1])
         
         if tol == parameters['tolerances'][-1]:
             rm = 'REF'
@@ -92,10 +93,10 @@ def process_output(path):
                 else:
                     continue
         results[rm].append(res)
-        if rm not in ['JAC', 'GS', 'REF']:
+        if 'NEW' not in rm:
             results_comm[rm].append(res_comm_log)
     with open(path + 'results.txt', 'w') as myfile:
-        myfile.write(json.dumps(results))
+        myfile.write(json.dumps(results, sort_keys = True, indent = 4))
     if 'logging' in parameters.keys() and parameters['logging']:
         with open(path + 'comm.txt', 'w') as myfile:
             myfile.write(json.dumps(results_comm))

@@ -30,7 +30,7 @@ private:
     std::shared_ptr<InterpolatedExpression> _fluxx_new;
 public:
     // gridsize, alpha, gamma, const for u0
-    Problem_heat_N(int, double, double, double = 500);
+    Problem_heat_N(int, double, double, double = 500, int = 0);
 
     void init_other(int);
 

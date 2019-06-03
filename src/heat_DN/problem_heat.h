@@ -38,7 +38,7 @@ protected:
     double * _uother_old, * _uother_new;
 
 public:
-    Problem_heat(int, double, double, double, double, double);
+    Problem_heat(int, double, double, double, double, double, int);
 
     void create_checkpoint(){
         *_ucheckpoint -> vector() = *_uold -> vector();

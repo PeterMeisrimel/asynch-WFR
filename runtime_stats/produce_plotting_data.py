@@ -23,7 +23,7 @@ def produce_plotting_data(path):
         data = json.load(myfile)
         
     results = {}
-    for r in parameters['runmodes']:
+    for r in parameters['run_names']:
         results[r] = {}
         
         ## tolerances

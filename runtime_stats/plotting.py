@@ -32,6 +32,7 @@ with open(path + 'plotting_data.txt', 'r') as myfile:
 parameters = {}
 with open(path + 'parameters.txt', 'r') as myfile:
     parameters = json.load(myfile)
+label = parameters['labels']
     
 ## create necessary directories
 import os
@@ -48,15 +49,15 @@ copy2(path + 'parameters.txt', plot_path + '/png')
 fig, ax = pl.subplots(figsize = (12, 10))
 markers, colors = reset_markers()
 
-for k in data.keys():
+for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = str(k), marker = m, color = c)
+    pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = label[num], marker = m, color = c)
     if k == 'NEW':
         pl.semilogx(data[k]['tols'], data[k]['iters_min'], color = c, lw = 2)
         pl.semilogx(data[k]['tols'], data[k]['iters_max'], color = c, lw = 2)
         
-ax.set_title('Tolerance vs. #Waveform iterations', fontsize = fs + 2)
+#ax.set_title('Tolerance vs. #Waveform iterations', fontsize = fs + 2)
 ax.set_xlabel('Waveform update tolerance', fontsize = fs)
 ax.set_ylabel('Iterations', fontsize = fs)
 ax.grid(b = True, which = 'major')
@@ -69,18 +70,18 @@ fig.savefig(plot_path + '/png/tolerance_vs_iters.png', dpi = 100)
 fig, ax = pl.subplots(figsize = (12, 10))
 markers, colors = reset_markers()
 
-pl.loglog([float(x) for x in data['GS']['tols']],
-          [float(x) for x in data['GS']['tols']],
+pl.loglog([float(x) for x in parameters['tolerances']],
+          [float(x) for x in parameters['tolerances']],
           label = 'tol', marker = None, color = 'k', linestyle = '--')
-for k in data.keys():
+for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = str(k), marker = m, color = c)
+    pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = label[num], marker = m, color = c)
     if k == 'NEW':
         pl.semilogx(data[k]['tols'], data[k]['errors2_min'], color = c, lw = 2)
         pl.semilogx(data[k]['tols'], data[k]['errors2_max'], color = c, lw = 2)
         
-ax.set_title('Tolerance vs. Error', fontsize = fs + 2)
+#ax.set_title('Tolerance vs. Error', fontsize = fs + 2)
 ax.set_xlabel('Waveform update tolerance', fontsize = fs)
 ax.set_ylabel('Err', fontsize = fs)
 ax.grid(b = True, which = 'major')
@@ -93,15 +94,15 @@ fig.savefig(plot_path + '/png/tolerance_vs_err.png', dpi = 100)
 fig, ax = pl.subplots(figsize = (12, 10))
 markers, colors = reset_markers()
 
-for k in data.keys():
+for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.loglog(data[k]['tols'], data[k]['times_med'], label = str(k), marker = m, color = c)
+    pl.loglog(data[k]['tols'], data[k]['times_med'], label = label[num], marker = m, color = c)
     if k == 'NEW':
         pl.loglog(data[k]['tols'], data[k]['times_min'], color = c, lw = 2)
         pl.loglog(data[k]['tols'], data[k]['times_max'], color = c, lw = 2)
     
-ax.set_title('Tolerance vs. Computational time', fontsize = fs + 2)
+#ax.set_title('Tolerance vs. Computational time', fontsize = fs + 2)
 ax.set_xlabel('Waveform update tolerance', fontsize = fs)
 ax.set_ylabel('Time (Wall Clock)', fontsize = fs)
 ax.grid(b = True, which = 'major')
@@ -115,11 +116,11 @@ fig, ax = pl.subplots(figsize = (12, 10))
 markers, colors = reset_markers()
 facecolor = reset_fc()
 
-for k in data.keys():
+for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     f = next(facecolor)
-    ax.loglog(data[k]['times_med'], data[k]['errors2_med'], label = str(k), marker = m, color = c)
+    ax.loglog(data[k]['times_med'], data[k]['errors2_med'], label = label[num], marker = m, color = c)
     for n, t in enumerate(data[k]['times']):
         val_t = data[k]['times_med'][n]
         min_t = data[k]['times_min'][n]
@@ -130,7 +131,7 @@ for k in data.keys():
         max_e = data[k]['errors2_max'][n]
         ax.fill_between([min_t, val_t, max_t], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor=f, interpolate=True, alpha = 0.3)
     
-ax.set_title('Computational time vs. Error', fontsize = fs + 2)
+#ax.set_title('Computational time vs. Error', fontsize = fs + 2)
 ax.set_xlabel('Time (Wall Clock)', fontsize = fs)
 ax.set_ylabel('Error', fontsize = fs)
 ax.grid(b = True, which = 'major')
@@ -144,11 +145,11 @@ fig, ax = pl.subplots(figsize = (12, 10))
 markers, colors = reset_markers()
 facecolor = reset_fc()
 
-for k in data.keys():
+for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     f = next(facecolor)
-    pl.semilogx(data[k]['errors2_med'], data[k]['iters_med'], label = str(k), marker = m, color = c)
+    pl.semilogx(data[k]['errors2_med'], data[k]['iters_med'], label = label[num], marker = m, color = c)
     for n, t in enumerate(data[k]['iters_med']):
         val_e = data[k]['errors2_med'][n]
         min_e = data[k]['errors2_min'][n]
@@ -159,7 +160,7 @@ for k in data.keys():
         max_i = data[k]['iters_max'][n]
         ax.fill_between([min_e, val_e, max_e], [val_i, max_i, val_i], [val_i, min_i, val_i], facecolor = f, interpolate=True, alpha = 0.3)
         
-ax.set_title('Error vs. Iterations', fontsize = fs + 2)
+#ax.set_title('Error vs. Iterations', fontsize = fs + 2)
 ax.set_xlabel('Error', fontsize = fs)
 ax.set_ylabel('Iterations', fontsize = fs)
 ax.grid(b = True, which = 'major')

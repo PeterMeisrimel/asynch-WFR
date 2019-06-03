@@ -22,8 +22,7 @@ name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
 exe = 'heat_DN'
 
-time_string = str(datetime.datetime.now()).replace(' ', '_')
-time_string = time_string.replace(':', '_')
+time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')
 
 if not os.path.exists('output'):
     os.makedirs('output')
@@ -35,10 +34,10 @@ output_parameters = '{}/parameters.txt'.format(output_dir)
 out_files = {'files': []}
 
 print('Starting order verification run...')
-steps_list = [2**i for i in range(11)]
+steps_list = [2**i for i in range(10)]
 for steps in steps_list:
-    parameters = {'timesteps1' : steps, 'timesteps2' : steps, 'macrosteps': 1, 'maxiter': 1000,
-                  'gridsize': gridsize, 'alpha1': 1, 'alpha2': 1, 'gamma1': 0.01, 'gamma2': 0.01,
+    parameters = {'timesteps' : steps, 'macrosteps': 1, 'maxiter': 1000,
+                  'gridsize': gridsize, 'alpha': 1, 'gamma': 0.01,
                   'logging': 0, 'runmode': 'GS', 'wftol': tol}
     
     parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])

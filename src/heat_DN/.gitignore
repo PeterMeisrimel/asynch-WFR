@@ -1,5 +1,7 @@
 heat_DN
+heat_DN_log
 CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
 Makefile
+heat.h

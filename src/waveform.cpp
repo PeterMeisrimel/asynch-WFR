@@ -82,6 +82,15 @@ double Waveform::get_err_norm_sq_last(double * in){
     return res;
 }
 
+double Waveform::get_norm_sq_last(){
+    double val, res = 0;
+    for(int i = 0; i < _length; i++){
+        val = _data[_length*(_n - 1) + i];
+        res += val * val;
+    }
+    return res;
+}
+
 void WF_swap_data_pointers(Waveform * wf1, Waveform * wf2){
     double * tmp;
     tmp = wf2 -> get_data_p();

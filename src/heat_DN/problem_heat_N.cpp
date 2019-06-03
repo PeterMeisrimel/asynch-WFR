@@ -6,7 +6,7 @@ September 2018
 #include "problem_heat_N.h"
 #include "problem_heat.h"
 
-Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, double const_c) : Problem_heat(gridsize, a, g, const_c, 1.0, 0.0){
+Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, double const_c, int which) : Problem_heat(gridsize, a, g, const_c, 1.0, 0.0, which){
     other_init_done = false;
     _length = _N + 1;
     _u0 = new double[_length];

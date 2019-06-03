@@ -11,7 +11,7 @@ A general purpose class for organization and handling of discrete Waveforms.
 Important note: This class does not allocate the memory for the data and is done inside the WFR methods. The rationale behind this is the need to allocate memory using MPI_win_allocate for One-sided communication.
 */
 class Waveform{
-private:
+protected:
 	int _n;      // number of points in time
     int _length; // size of vector
 	double * _times;
@@ -35,6 +35,7 @@ public:
     double get_time(int idx){ return _times[idx];};
     // squared 2-norm of difference between last vector and input vector
     double get_err_norm_sq_last (double *); // vec(in)
+    double get_norm_sq_last ();
 
     double * get_data_p()           { return _data;};
     void   * set_data_p(double * p) { _data = p;};
