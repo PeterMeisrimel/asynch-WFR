@@ -14,15 +14,15 @@ December 2018
 #include <cassert>
 #include <iostream>
 
-WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool log, bool log_err){
+WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool errlogging, bool commlogging){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end = tend;
     prob    = p;
     WF_iters = 0;
-    //log_pattern = log;
+    //log_pattern = commlogging;
     log_pattern = false;
-    log_errors = log_err;
+    log_errors = errlogging;
     err_log_counter = 0;
 }
 

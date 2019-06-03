@@ -8,6 +8,7 @@ December 2018
 #include "WFR_JAC.h"
 #include "WFR_NEW.h"
 #include "input_reader.h"
+#include "input_reader_heat.h"
 #include "problem_heat_D.h"
 #include "problem_heat_N.h"
 #include "mpi.h"
@@ -36,12 +37,13 @@ int main(int argc, char *argv[]){
     Problem * prob;
     WFR * wfr_method;
     bool FIRST = true; // for GS
-    bool logging = false;
+    bool commlogging = false;
+    bool errlogging = false;
 	int which_u0 = 0;
 
     // default running parameters
     double WF_TOL = 1e-6;
-    int WF_MAXITER = 30;
+    int WF_MAXITER = 200;
     int num_macro = 5;
 
     int gridsize = 32;
@@ -53,8 +55,8 @@ int main(int argc, char *argv[]){
 	double lambda1 = lambda;
 	double lambda2 = lambda;
 
-	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, logging, FIRST, which_u0);
-	process_inputs_heat(argc, argv, alpha1, alpha2, lambda1, lambda2, gridsize1, gridsize2);
+	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST, errlogging, commlogging);
+	process_inputs_heat(argc, argv, alpha1, alpha2, lambda1, lambda2, gridsize1, gridsize2, which_u0);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
@@ -73,23 +75,24 @@ int main(int argc, char *argv[]){
 
 	switch(runmode){
 		case 1:
-		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST);
+		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, errlogging);
 			break;
 		case 2:
-			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, errlogging);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, logging);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging);
 			break;
 	}
 
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -2);
-	//wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, -1);
 
-    wfr_method -> write_results();
-
-    //if(logging)
-    //    wfr_method -> write_log(num_macro, timesteps);
+    if (not errlogging){
+        wfr_method -> write_results();
+    }else{
+        MPI_Barrier(MPI_COMM_WORLD);
+        wfr_method -> write_error_log();
+    }
 
 	return 0;
 }

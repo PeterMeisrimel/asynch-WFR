@@ -29,16 +29,16 @@ int main(int argc, char *argv[]){
     Problem * prob;
     WFR * wfr_method;
     bool FIRST = true; // for GS
-    // Note, logging formally does not make a lot of sense here, as it is build around implicit time-integration
-    bool logging = false;
+    // Note, commlogging formally does not make a lot of sense here, as it is build around implicit time-integration
+    bool commlogging = false;
+    bool errlogging = false;
 
     // default running parameters
     double WF_TOL = 1e-10;
     int WF_MAXITER = 50;
     int num_macro = 5;
-    int u0 = 0;
 
-	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, logging, FIRST, u0);
+	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST, errlogging, commlogging);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
@@ -51,18 +51,23 @@ int main(int argc, char *argv[]){
 
 	switch(runmode){
 		case 1:
-		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST);
+		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, errlogging);
 			break;
 		case 2:
-			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, errlogging);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging);
 			break;
     }
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);
 
-    wfr_method -> write_results();
+    if (not errlogging){
+        wfr_method -> write_results();
+    }else{
+        MPI_Barrier(MPI_COMM_WORLD);
+        wfr_method -> write_error_log();
+    }
 
     MPI_Finalize();
 	return 0;

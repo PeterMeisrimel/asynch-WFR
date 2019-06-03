@@ -9,13 +9,13 @@ December 2018
 #include "math.h" // for sqrt
 #include "mpi.h"
 
-WFR_JAC::WFR_JAC(int id_self, int id_other, double t_end, Problem * p, bool log_err){
+WFR_JAC::WFR_JAC(int id_self, int id_other, double t_end, Problem * p, bool errlogging){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end   = t_end;
     prob    = p;
     WF_iters = 0;
-    log_errors = log_err;
+    log_errors = errlogging;
     err_log_counter = 0;
 }
 

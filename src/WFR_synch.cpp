@@ -16,8 +16,6 @@ void WFR_synch::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_sel
     /***************************
     initialize stuff
     ****************************/
-    // initialize own waveform
-
     DIM_SELF = prob->get_length();
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,

@@ -32,7 +32,7 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c,
     _heat_flux_form = new heat_flux::LinearForm(_V);
     _heat_flux_form -> dt    = _dt;
     _heat_flux_form -> alpha = _alpha;
-    _heat_flux_form -> lambda = _lambda;
+    _heat_flux_form -> lambda_diff = _lambda;
     _heat_flux_form -> uold  = _uold;
     _heat_flux_form -> unew  = _unew_flux;
 	*/

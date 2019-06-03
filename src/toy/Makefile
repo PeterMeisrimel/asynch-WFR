@@ -12,10 +12,7 @@ LOCALDEPS = problem_toy.h
 _OBJ = waveform.o waveform_locking.o WFR.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_toy.o main_toy.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-_OBJ_LOG = waveform.o waveform_locking.o WFR.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_toy.o main_toy_log.o
-OBJ_LOG = $(patsubst %,$(ODIR)/%,$(_OBJ_LOG))
-
-all : TOY TOY_LOG
+all : TOY
 
 $(ODIR)/%.o: ../%.cpp $(BASEDEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -26,10 +23,7 @@ $(ODIR)/%.o: %.cpp $(LOCALDEPS)
 TOY: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-TOY_LOG: $(OBJ_LOG)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ TOY TOY_LOG
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ TOY

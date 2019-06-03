@@ -14,7 +14,7 @@ from produce_plotting_data import produce_plotting_data
 
 times = 2
 tolerances = [10**(-i) for i in range(7)]
-parameters = {'timesteps' : 100, 'macrosteps': 5, 'maxiter': 200, 'logging': 0}
+parameters = {'timesteps' : 100, 'macrosteps': 5, 'maxiter': 200}
 
 print('Starting run...')
 print('times: ', times)

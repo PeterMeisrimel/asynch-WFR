@@ -22,11 +22,10 @@ tol = 1e-4
 gridsize = 64
 name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
-exe = 'heat_DN_log'
-exe_ref = 'heat_DN'
+exe = 'heat_DN'
 
 parameters = {'timesteps' : 20, 'macrosteps': 1, 'maxiter': 1000, 'tend': 0.1,
-              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'logging': 1}
+              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1}
 path = run_tolerances(folder, exe, name, times = 1, tolerances = [tol, tol/10], parameters = parameters,
                       runmodes = ['GS', 'GS', 'JAC', 'NEW'], run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
                       first = [True, False, False, False], ref_run_name = 'GS_DN',

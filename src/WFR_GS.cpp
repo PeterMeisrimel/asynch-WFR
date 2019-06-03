@@ -9,14 +9,14 @@ December 2018
 #include "math.h" // for sqrt
 #include "mpi.h"
 
-WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first, bool log_err){
+WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first, bool errlogging){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end   = t_end;
     prob    = p;
     FIRST    = first;
     WF_iters = 0;
-    log_errors = log_err;
+    log_errors = errlogging;
     err_log_counter = 0;
 }
 
