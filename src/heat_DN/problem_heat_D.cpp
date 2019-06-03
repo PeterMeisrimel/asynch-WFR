@@ -32,7 +32,7 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c,
     _heat_flux_form = new heat_flux::LinearForm(_V);
     _heat_flux_form -> dt    = _dt;
     _heat_flux_form -> alpha = _alpha;
-    _heat_flux_form -> gamma = _gamma;
+    _heat_flux_form -> lambda = _lambda;
     _heat_flux_form -> uold  = _uold;
     _heat_flux_form -> unew  = _unew_flux;
 	*/
@@ -59,7 +59,7 @@ void Problem_heat_D::init_other(int len_other){
 // compute fluxes
 void Problem_heat_D::get_flux(double dt, double * flux_out){
     for(int i = 0; i < _length; i++)
-        flux_out[i] = (*_gamma)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx;
+        flux_out[i] = (*_lambda)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx;
 }
 
 void Problem_heat_D::do_step(double t, double dt, double * unew, Waveform * WF_in){

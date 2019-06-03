@@ -6,16 +6,16 @@ element = FiniteElement("Lagrange", cell, 1)
 v = TestFunction(element)
 
 # solutions
-u = TrialFunction(element)
+u  = TrialFunction(element)
 u0 = Coefficient(element)
 
 # heat equation constants and timestep
-alpha = Constant(cell)
-gamma = Constant(cell)
-dt = Constant(cell)
-fold = Coefficient(element)
-fnew = Coefficient(element)
+alpha  = Constant(cell)
+lambda_diff = Constant(cell)
+dt     = Constant(cell)
+fold   = Coefficient(element)
+fnew   = Coefficient(element)
 
-eq = alpha*u*v*dx - alpha*u0*v*dx + 0.5*gamma*dt*dot(grad(u) + grad(u0), grad(v))*dx + 0.5*dt*(fold + fnew)*v*ds
+eq = alpha*u*v*dx - alpha*u0*v*dx + 0.5*lambda_diff*dt*dot(grad(u) + grad(u0), grad(v))*dx + 0.5*dt*(fold + fnew)*v*ds
 a = lhs(eq)
 L = rhs(eq)

@@ -21,7 +21,7 @@ Problem_heat::Problem_heat(int gridsize, double a, double g, double const_c, dou
     _by    = by;
 
     _alpha = std::make_shared<Constant>(a);
-    _gamma = std::make_shared<Constant>(g);
+    _lambda = std::make_shared<Constant>(g);
     _dt    = std::make_shared<Constant>(0);
 
     _mesh = std::make_shared<UnitSquareMesh>(MPI_COMM_SELF, _N, _N);
@@ -30,12 +30,12 @@ Problem_heat::Problem_heat(int gridsize, double a, double g, double const_c, dou
     _a = new heat::BilinearForm(_V, _V);
     _L = new heat::LinearForm(_V);
 
-    _L -> alpha = _alpha;
-    _L -> gamma = _gamma;
-    _L -> dt    = _dt;
-    _a -> alpha = _alpha;
-    _a -> gamma = _gamma;
-    _a -> dt    = _dt;
+    _L -> alpha       = _alpha;
+    _L -> lambda_diff = _lambda;
+    _L -> dt          = _dt;
+    _a -> alpha       = _alpha;
+    _a -> lambda_diff = _lambda;
+    _a -> dt          = _dt;
 	
     InitialConditions u_init(const_c, _bx, _by, which_u0);
     _uold        = std::make_shared<Function>(_V);

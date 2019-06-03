@@ -50,7 +50,7 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double&
 	}
 }
 
-void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2, double& gamma1, double& gamma2, int& gridsize1, int& gridsize2){
+void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2, double& lambda1, double& lambda2, int& gridsize1, int& gridsize2){
 	assert( argc % 2 == 1);
 
 	for(int i = 1; i < argc; i+=2){
@@ -63,14 +63,14 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
 			alpha1 = atof(argv[i+1]);
 		else if (arg == "-alpha2")
 			alpha2 = atof(argv[i+1]);
-		else if (arg == "-gamma"){
-			gamma1 = atof(argv[i+1]);
-			gamma2 = atof(argv[i+1]);
+		else if (arg == "-lambda"){
+			lambda1 = atof(argv[i+1]);
+			lambda2 = atof(argv[i+1]);
 		}
-        else if (arg == "-gamma1")
-			gamma1 = atof(argv[i+1]);
-		else if (arg == "-gamma2")
-			gamma2 = atof(argv[i+1]);
+        else if (arg == "-lambda1")
+			lambda1 = atof(argv[i+1]);
+		else if (arg == "-lambda2")
+			lambda2 = atof(argv[i+1]);
 		else if (arg == "-gridsize"){
 			gridsize1 = atoi(argv[i+1]);
 			gridsize2 = atoi(argv[i+1]);

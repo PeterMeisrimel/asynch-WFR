@@ -37,7 +37,7 @@ print('Starting order verification run...')
 steps_list = [2**i for i in range(10)]
 for steps in steps_list:
     parameters = {'timesteps' : steps, 'macrosteps': 1, 'maxiter': 1000,
-                  'gridsize': gridsize, 'alpha': 1, 'gamma': 0.01,
+                  'gridsize': gridsize, 'alpha': 1, 'lambda': 0.01,
                   'logging': 0, 'runmode': 'GS', 'wftol': tol}
     
     parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])

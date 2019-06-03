@@ -39,7 +39,7 @@ private:
 
     void get_flux(double, double*);
 public:
-    // gridsize, alpha, gamma, const for u0
+    // gridsize, alpha, lambda, const for u0
     Problem_heat_D(int, double, double, double = 500, int = 0);
 
     void init_other(int);

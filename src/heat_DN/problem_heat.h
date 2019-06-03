@@ -21,7 +21,7 @@ protected:
     double _dx;
     double _c, _bx, _by; // parameters for building initial condition
     std::shared_ptr<Constant> _dt;
-    std::shared_ptr<Constant> _alpha, _gamma; // equation parameters
+    std::shared_ptr<Constant> _alpha, _lambda; // equation parameters
 
     std::shared_ptr<UnitSquareMesh> _mesh;
     std::shared_ptr<FunctionSpace> _V; // FunctionSpace

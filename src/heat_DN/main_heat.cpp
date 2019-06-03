@@ -49,25 +49,25 @@ int main(int argc, char *argv[]){
     double alpha = 1;
 	double alpha1 = alpha;
 	double alpha2 = alpha;
-    double gamma = 0.01;
-	double gamma1 = gamma;
-	double gamma2 = gamma;
+    double lambda = 0.01;
+	double lambda1 = lambda;
+	double lambda2 = lambda;
 
 	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, logging, FIRST, which_u0);
-	process_inputs_heat(argc, argv, alpha1, alpha2, gamma1, gamma2, gridsize1, gridsize2);
+	process_inputs_heat(argc, argv, alpha1, alpha2, lambda1, lambda2, gridsize1, gridsize2);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
 		alpha = alpha1;
-		gamma = gamma1;
+		lambda = lambda1;
 		gridsize = gridsize1;
-        prob = new Problem_heat_D(gridsize, alpha, gamma, 500, which_u0);
+        prob = new Problem_heat_D(gridsize, alpha, lambda, 500, which_u0);
     }else{
         timesteps = timesteps2;
 		alpha = alpha2;
-		gamma = gamma2;
+		lambda = lambda2;
 		gridsize = gridsize2;
-        prob = new Problem_heat_N(gridsize, alpha, gamma, 500, which_u0);
+        prob = new Problem_heat_N(gridsize, alpha, lambda, 500, which_u0);
         FIRST = not FIRST;
     }
 

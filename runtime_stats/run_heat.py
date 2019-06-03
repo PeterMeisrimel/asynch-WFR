@@ -16,7 +16,7 @@ times = 2
 tolerances = [10**(-i) for i in range(5)]
 
 parameters = {'timesteps' : 40, 'macrosteps': 2, 'maxiter': 1000,
-              'gridsize': 32, 'alpha': 1, 'gamma': 0.1, 'tend': 0.2, 'logging': 0, 'u0': 2}
+              'gridsize': 32, 'alpha': 1, 'lambda': 0.1, 'tend': 0.2, 'logging': 0, 'u0': 2}
 print('Starting run...')
 print('times: ', times)
 print('tolerances: ', tolerances)
