@@ -21,10 +21,7 @@ using namespace dolfin;
 
 class Problem_heat_N : public Problem_heat{
 private:
-    std::shared_ptr<Constant> _dirichlet_boundary_val;
     std::shared_ptr<Boundaries_N> _dirichlet_boundary;
-    const DirichletBC * _BC;
-    std::vector<const DirichletBC *> _bcs;
   
     std::shared_ptr<InterpolatedExpression> _fluxx_old;
     std::shared_ptr<InterpolatedExpression> _fluxx_new;

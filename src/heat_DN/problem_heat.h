@@ -25,6 +25,11 @@ protected:
 
     std::shared_ptr<UnitSquareMesh> _mesh;
     std::shared_ptr<FunctionSpace> _V; // FunctionSpace
+
+    // boundary stuff
+    std::shared_ptr<Constant> _dirichlet_boundary_val;
+    const DirichletBC * _BC;
+    std::vector<const DirichletBC *> _bcs;
   
     std::shared_ptr<Function> _uold;
     std::shared_ptr<Function> _ucheckpoint;

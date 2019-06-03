@@ -26,21 +26,7 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, double const_c,
     _L -> fold = _rhs_fold;
     _L -> fnew = _rhs_fnew;
 
-    // setting up everything for computing fluxes
-    _unew_flux = std::make_shared<Function>(_V);
-	/*
-    _heat_flux_form = new heat_flux::LinearForm(_V);
-    _heat_flux_form -> dt    = _dt;
-    _heat_flux_form -> alpha = _alpha;
-    _heat_flux_form -> lambda_diff = _lambda;
-    _heat_flux_form -> uold  = _uold;
-    _heat_flux_form -> unew  = _unew_flux;
-	*/
     _unew->vector() = _uold->vector();
-
-    _flux_function = new Function(_V);
-    _flux_vec = new Vector(MPI_COMM_SELF, _length*_length);
-    _flux_vec -> zero();
 
     get_flux(1., _u0);
 }
