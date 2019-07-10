@@ -1,0 +1,29 @@
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "Waveform Relaxation using asynchronous time-integration"
+OUTPUT_DIRECTORY       = documentation
+CREATE_SUBDIRS         = YES
+
+OUTPUT_LANGUAGE        = English
+OPTIMIZE_OUTPUT_FOR_C  = NO
+
+GENERATE_TODOLIST      = YES # /todo
+GENERATE_TESTLIST      = YES # /test
+GENERATE_BUGLIST       = YES # /bug
+GENERATE_DEPRECATEDLIST= YES # /deprecated
+
+QUIET                  = YES
+WARN_NO_PARAMDOC       = YES
+WARN_IF_UNDOCUMENTED   = NO # no warnings for undocumented things, most notably class attributes
+
+INPUT                  = include src
+
+EXCLUDE_PATTERNS       = CMakeFiles heat.h
+
+EXTRACT_ALL            = YES
+FILE_PATTERNS          = *.h *.cpp
+
+RECURSIVE              = YES
+
+EXAMPLE_PATH           = src
+
+HAVE_DOT               = NO
