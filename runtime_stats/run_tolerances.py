@@ -15,7 +15,9 @@ import json
 def run_tolerances(folder, exe, name, times = 10, tolerances = None,
                    parameters = None, runmodes = None,
                    first = None, run_names = None, ref_run_name = 'GS',
-                   labels = None):
+                   labels = None, times_only_new = False):
+    # set times_only_new = true to only run new method <times> many times
+    # other methodss are deterministic, several runs only give mean runtime
     
     if runmodes is None:
         runmodes = ['GS', 'JAC', 'NEW']
@@ -81,6 +83,8 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
             print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)
             for i in range(times):
                 subprocess.call(run_string, shell = True)
+                if times_only_new and 'NEW' not in r:
+                    break
                 
     with open(output_content, 'w') as myfile:
         myfile.write(json.dumps(out_files, indent = 4))
