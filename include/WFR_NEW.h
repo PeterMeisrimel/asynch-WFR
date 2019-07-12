@@ -26,7 +26,7 @@ private:
     int * iter_per_macro; // store number of iterations per macro step
     int log_p, log_m; // idx for writing into comm_pattern and iter_per_macro
 public:
-    WFR_NEW(int, int, double, Problem *, bool = false, bool = false);
+    WFR_NEW(int, int, double, Problem *, bool = false, bool = false, int = 1);
 
     void run(double, int, int, int, int = 1); // tol, maxiter, macro_steps, steps_self, conv_check
 

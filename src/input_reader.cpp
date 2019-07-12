@@ -9,7 +9,9 @@ January 2019
 #include <stdlib.h> // string to double conversion
 #include <stdexcept>
 
-void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter, bool& FIRST, bool& error_logging, bool& comm_logging){
+/// doxygen test /todo more stuff
+
+void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter, bool& FIRST, bool& error_logging, bool& comm_logging, int& nconv){
 	assert( argc % 2 == 1);
 
 	for(int i = 1; i < argc; i+=2){
@@ -47,5 +49,7 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double&
             FIRST = bool(atoi(argv[i+1]));
         else if (arg == "-errlog")
             error_logging = bool(atoi(argv[i+1]));
+        else if (arg == "-nconv")
+            nconv = atoi(argv[i+1]);
 	}
 }

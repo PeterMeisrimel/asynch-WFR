@@ -46,6 +46,7 @@ protected:
     double * error_log;
 
     double rel_update_fac;
+    int nconv, nconvmax; // convergence check requires nconv updates below tolerance to register convergence
 
     virtual void do_WF_iter        (double, int, int, int) = 0; // tol, maxiter, steps_self, steps_other
     virtual void integrate_window  (int)                   = 0; // steps_self

@@ -32,13 +32,14 @@ int main(int argc, char *argv[]){
     // Note, commlogging formally does not make a lot of sense here, as it is build around implicit time-integration
     bool commlogging = false;
     bool errlogging = false;
+    int nconv = 1;
 
     // default running parameters
     double WF_TOL = 1e-10;
     int WF_MAXITER = 50;
     int num_macro = 5;
 
-	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST, errlogging, commlogging);
+	process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST, errlogging, commlogging, nconv);
 
     if (ID_SELF == 0){
         timesteps = timesteps1;
@@ -51,13 +52,13 @@ int main(int argc, char *argv[]){
 
 	switch(runmode){
 		case 1:
-		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, errlogging);
+		    wfr_method = new WFR_GS(ID_SELF, ID_OTHER, t_end, prob, FIRST, errlogging, nconv);
 			break;
 		case 2:
-			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, errlogging);
+			wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, errlogging, nconv);
 			break;
 		case 3:
-			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging);
+			wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging, nconv);
 			break;
     }
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps, 1);

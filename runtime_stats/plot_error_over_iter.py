@@ -19,14 +19,14 @@ def split_and_float(f):
     return a[0], a[1], a[2:]
 
 tol = 1e-4
-gridsize = 64
+gridsize = 128
 name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
 exe = 'heat_DN'
 
 parameters = {'timesteps' : 20, 'macrosteps': 1, 'maxiter': 1000, 'tend': 0.1,
-              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1}
-path = run_tolerances(folder, exe, name, times = 1, tolerances = [tol, tol/10], parameters = parameters,
+              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1, 'nconv': 3}
+path = run_tolerances(folder, exe, name, times = 1, tolerances = [tol, tol/100], parameters = parameters,
                       runmodes = ['GS', 'GS', 'JAC', 'NEW'], run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
                       first = [True, False, False, False], ref_run_name = 'GS_DN',
                       labels = ['GS DN', 'GS ND', 'JAC', 'NEW'])
@@ -89,8 +89,8 @@ with open(path + 'plotting_data.txt', 'w') as myfile:
     
 """ plotting """
 pl.close('all')
-pl.rcParams['lines.linewidth'] = 3
-pl.rcParams['lines.markersize'] = 17
+pl.rcParams['lines.linewidth'] = 2
+pl.rcParams['lines.markersize'] = 10
 fs = 32
 
 import itertools
@@ -123,7 +123,8 @@ markers, colors = reset_markers()
 for i, r in enumerate(parameters['run_names']):
     c = next(colors)
     m = next(markers)
-    ax.semilogy(range(int(data[r]['iters'])+1), data[r]['errs2'], label = label[i], marker = m, color = c)
+    ax.semilogy(range(int(data[r]['iters'])+1), data[r]['errs2'], label = label[i], marker = m, color = c,
+                linewidth = 0.5 if r == 'JAC' else 1, markersize = 10 if r == 'JAC' else 15)
     
 ax.set_xlabel('Iterations', fontsize = fs)
 ax.set_ylabel('Error', fontsize = fs)

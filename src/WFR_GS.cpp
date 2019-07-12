@@ -9,7 +9,7 @@ December 2018
 #include "math.h" // for sqrt
 #include "mpi.h"
 
-WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first, bool errlogging){
+WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first, bool errlogging, int nconv_in){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end   = t_end;
@@ -18,6 +18,8 @@ WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first,
     WF_iters = 0;
     log_errors = errlogging;
     err_log_counter = 0;
+    nconv = 0;
+    nconvmax = nconv_in;
 }
 
 void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
@@ -37,11 +39,14 @@ void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_sel
         }
         
         if (check_convergence(WF_TOL)){
-            break;
+            nconv++;
+            if (nconv >= nconvmax) // sufficiently many steps registered convergence, stop
+                break;
         }else{
-            WF_self ->get_last(WF_self_last);
-            WF_other->get_last(WF_other_last);
-            prob    ->reset_to_checkpoint();
+            nconv = 0;
         }
+        WF_self ->get_last(WF_self_last);
+        WF_other->get_last(WF_other_last);
+        prob    ->reset_to_checkpoint();
     } // END WF iter loop
 }

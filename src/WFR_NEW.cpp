@@ -14,7 +14,7 @@ December 2018
 #include <cassert>
 #include <iostream>
 
-WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool errlogging, bool commlogging){
+WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool errlogging, bool commlogging, int nconv_in){
     ID_SELF  = id_self;
     ID_OTHER = id_other;
     _t_end = tend;
@@ -24,6 +24,8 @@ WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool errlo
     log_pattern = false;
     log_errors = errlogging;
     err_log_counter = 0;
+    nconv = 0;
+    nconvmax = nconv_in;
 }
 
 void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self, int conv_check){
@@ -118,6 +120,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
 
 void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, int dummy){
 	first_iter = true;
+    nconv = 0;
 	for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
         WF_iters++;
 
@@ -129,19 +132,22 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_data);
 
-        if (check_convergence(WF_TOL) or (i == (WF_MAX_ITER - 1))){ // convergence or maximum number of iterations reached
+        if (check_convergence(WF_TOL)){ // convergence or maximum number of iterations reached
+            nconv++;
             /*
             if (log_pattern){
                 iter_per_macro[log_m] = i+1;
                 log_m++;
             }
             */
-            break;
+            if (nconv >= nconvmax) // sufficiently many steps registered convergence, stop
+                break;
         }else{
-            WF_self -> get_last(WF_self_last);
-            WF_other-> get_last(WF_other_last);
-            prob    -> reset_to_checkpoint();
+            nconv = 0;
         }
+        WF_self -> get_last(WF_self_last);
+        WF_other-> get_last(WF_other_last);
+        prob    -> reset_to_checkpoint();
     } // endfor waveform loop
 }
 

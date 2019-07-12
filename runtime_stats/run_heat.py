@@ -12,11 +12,11 @@ from postprocessing_cpp_output import process_output, delete_raw_data
 from produce_plotting_data import produce_plotting_data
 import subprocess
 
-times = 2
-tolerances = [10**(-i) for i in range(5)]
+times = 5
+tolerances = [10**(-i) for i in range(8)]
 
 parameters = {'timesteps' : 40, 'macrosteps': 2, 'maxiter': 1000,
-              'gridsize': 32, 'alpha': 1, 'lambda': 0.1, 'tend': 0.2, 'u0': 2}
+              'gridsize': 256, 'alpha': 1, 'lambda': 0.1, 'tend': 0.2, 'u0': 2, 'nconv': 3}
 print('Starting run...')
 print('times: ', times)
 print('tolerances: ', tolerances)
@@ -31,7 +31,7 @@ path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN', times = times,
 print('...processing output')
 process_output(path)
 print('...deleting raw data')
-delete_raw_data(path)
+#delete_raw_data(path)
 print('...producing plotting data')
 produce_plotting_data(path)
 print('...plotting')
