@@ -12,6 +12,33 @@ import subprocess
 import datetime
 import json
 
+
+def run_tolerances_sorted(folder, exe, output_dir, out_files, num_proc, times = 10, tolerances = None,
+                   parameters = None, runmodes = None,
+                   first = None, run_names = None, ref_run_name = 'GS',
+                   times_only_new = False):
+    for v, tol in enumerate(tolerances):
+        parameters['wftol'] = tol
+        parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])
+        for w, r in enumerate(runmodes):
+            parameter_string_full = parameter_string + ' -first ' + str(int(first[w]))
+            if v == len(tolerances) - 1 :
+                if run_names[w] != ref_run_name:
+                    continue
+                else:
+                    times = 1
+            out_f = output_dir + '/' + str(run_names[w]) + '_' + str(tol) + '.txt'
+            out_files['files'].append(out_f)
+            
+            run_string = ('mpirun -np ' + str(num_proc) + ' ../src/' + folder + '/' + exe +
+                         ' -runmode ' + r + ' ' + parameter_string_full + ' >> ' + out_f + '\n')
+            #print(run_string)
+            print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)
+            for i in range(times):
+                subprocess.call(run_string, shell = True)
+                if times_only_new and 'NEW' not in r:
+                    break
+
 def run_tolerances(folder, exe, name, times = 10, tolerances = None,
                    parameters = None, runmodes = None,
                    first = None, run_names = None, ref_run_name = 'GS',
@@ -37,15 +64,6 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
         if ' ' in run_names:
             raise ValueError('spaces in run_names not permitted')
         
-    parameters_run = parameters.copy()
-    parameters['runmodes'] = runmodes
-    parameters['folder'] = folder
-    parameters['executable'] = exe
-    parameters['name'] = name
-    parameters['run_names'] = run_names
-    parameters['reference_sol'] = ref_run_name
-    parameters['labels'] = labels
-        
     tt = times
     #########
     time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')
@@ -64,6 +82,44 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
     output_parameters = '{}/parameters.txt'.format(output_dir)
     out_files = {'files': []}
     
+    # verify all input lists are of same length
+    assert(len(runmodes) == len(run_names))
+    assert(len(run_names) == len(first))
+    assert(len(first) == len(labels))
+    
+    serial = {'runmodes': [], 'run_names': [], 'first': [], 'labels': []}
+    parallel = {'runmodes': [], 'run_names': [], 'first': [], 'labels': []}
+    
+    for i, rm in enumerate(runmodes):
+        if 'GS' in rm:
+            serial['runmodes'].append(runmodes[i])
+            serial['run_names'].append(run_names[i])
+            serial['first'].append(first[i])
+            serial['labels'].append(labels[i])
+        else:
+            parallel['runmodes'].append(runmodes[i])
+            parallel['run_names'].append(run_names[i])
+            parallel['first'].append(first[i])
+            parallel['labels'].append(labels[i])
+            
+    import threading
+    # SERIAL STUFF
+    args_serial = (folder, exe, output_dir, out_files, 1, times, tolerances,
+                   parameters, serial['runmodes'], serial['first'], serial['run_names'],
+                   ref_run_name, times_only_new)
+    thread_serial = threading.Thread(target = run_tolerances_sorted, args = args_serial)
+    # PARALLEL STUFF
+    args_parallel = (folder, exe, output_dir, out_files, 2, times, tolerances,
+                            parameters, parallel['runmodes'], parallel['first'], parallel['run_names'],
+                            ref_run_name, times_only_new)
+    thread_parallel = threading.Thread(target = run_tolerances_sorted, args = args_parallel)
+    
+    thread_serial.start()
+    thread_parallel.start()
+    thread_serial.join()
+    thread_parallel.join()
+            
+    """
     for v, tol in enumerate(tolerances):
         parameters_run['wftol'] = tol
         parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters_run[key]) for key in parameters_run.keys()])
@@ -89,11 +145,18 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
                 subprocess.call(run_string, shell = True)
                 if times_only_new and 'NEW' not in r:
                     break
+    """
                 
     with open(output_content, 'w') as myfile:
         myfile.write(json.dumps(out_files, indent = 4))
-
+        
     parameters['runmodes'] = runmodes
+    parameters['folder'] = folder
+    parameters['executable'] = exe
+    parameters['name'] = name
+    parameters['run_names'] = run_names
+    parameters['reference_sol'] = ref_run_name
+    parameters['labels'] = labels
     parameters['tolerances'] = tolerances
     parameters['times'] = tt        
     
