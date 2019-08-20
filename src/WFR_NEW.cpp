@@ -11,51 +11,39 @@ December 2018
 #include "math.h"
 #include "mpi.h"
 #include "unistd.h"
-#include <cassert>
 #include <iostream>
 
-WFR_NEW::WFR_NEW(int id_self, int id_other, double tend, Problem * p, bool errlogging, bool commlogging, int nconv_in){
-    ID_SELF  = id_self;
-    ID_OTHER = id_other;
+WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, bool commlogging) : WFR_parallel(id_in_self, id_in_other){
     _t_end = tend;
-    prob    = p;
+    prob_self    = p;
     WF_iters = 0;
     //log_pattern = commlogging;
     log_pattern = false;
     log_errors = errlogging;
     err_log_counter = 0;
-    nconv = 0;
-    nconvmax = nconv_in;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self, int conv_check){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in){
     conv_which = conv_check;
-    /***************************
-    initialize stuff
-    ****************************/
-    // initialize own waveform
+    steps_converged = 0;
+    steps_converged_required = steps_converged_required_in;
 
-    DIM_SELF = prob->get_length();
+    DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
                  &DIM_OTHER, 1, MPI_INT, ID_OTHER, TAG_DATA,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    prob->init_other(DIM_OTHER);
+    prob_self->init_other(DIM_OTHER);
 
     u0_self  = new double[DIM_SELF];
     u0_other = new double[DIM_OTHER];
-    prob->get_u0(u0_self);
+    prob_self->get_u0(u0_self);
 
     WF_self_last  = new double[DIM_SELF];
     WF_other_last = new double[DIM_OTHER];
 
-    int steps_other;
-    MPI_Sendrecv(&steps_self , 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 &steps_other, 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    int WF_LEN_SELF  = steps_self/num_macro + 1;
-    int WF_LEN_OTHER = steps_other/num_macro + 1;
+    int WF_LEN_SELF  = steps_self/steps_macro + 1;
+    int WF_LEN_OTHER = steps_other/steps_macro + 1;
 
     // initiliaze own waveform
     times_self = new double[WF_LEN_SELF];
@@ -86,19 +74,20 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
     if (log_pattern){
         log_p = 0;
         log_m = 0;
-        iter_per_macro = new int[num_macro];
+        iter_per_macro = new int[steps_macro];
         comm_pattern = new bool[WF_MAX_ITER*steps_self];
     }
     */
 
-    init_error_log(num_macro, WF_MAX_ITER);
+    init_error_log(steps_macro, WF_MAX_ITER);
 
-    double window_length = _t_end/num_macro;
+    double window_length = _t_end/steps_macro;
+    set_conv_check_WF_ptr(conv_which);
 
     MPI_Barrier(MPI_COMM_WORLD);
 	runtime = MPI_Wtime(); // runtime measurement start
-	for(int i = 0; i < num_macro; i++){ // Macro step loop
-        prob -> create_checkpoint();
+	for(int i = 0; i < steps_macro; i++){ // Macro step loop
+        prob_self -> create_checkpoint();
         WF_self ->get_last(u0_self);
         WF_self ->set(0, u0_self);
 
@@ -108,7 +97,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
 
         MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
-        if(i != num_macro - 1){
+        if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
         }
@@ -118,13 +107,14 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int num_macro, int steps_self,
 	MPI_Win_free(&WIN_data);
 }
 
-void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, int dummy){
+void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
 	first_iter = true;
-    nconv = 0;
+    steps_converged = 0;
 	for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
         WF_iters++;
 
-        integrate_window(steps_per_window);
+        //integrate_window(steps_per_window);
+        integrate_window(WF_self, WF_other, steps_per_window_self, prob_self);
 
         // all outstanding RMA operations done up to this point
         MPI_Barrier(MPI_COMM_WORLD);
@@ -133,25 +123,25 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window, i
         MPI_Win_unlock(ID_SELF, WIN_data);
 
         if (check_convergence(WF_TOL)){ // convergence or maximum number of iterations reached
-            nconv++;
+            steps_converged++;
             /*
             if (log_pattern){
                 iter_per_macro[log_m] = i+1;
                 log_m++;
             }
             */
-            if (nconv >= nconvmax) // sufficiently many steps registered convergence, stop
+            if (steps_converged >= steps_converged_required) // sufficiently many steps registered convergence, stop
                 break;
         }else{
-            nconv = 0;
+            steps_converged = 0;
         }
-        WF_self -> get_last(WF_self_last);
-        WF_other-> get_last(WF_other_last);
-        prob    -> reset_to_checkpoint();
+        WF_self   -> get_last(WF_self_last);
+        WF_other  -> get_last(WF_other_last);
+        prob_self -> reset_to_checkpoint();
     } // endfor waveform loop
 }
 
-void WFR_NEW::integrate_window(int steps){
+void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
     double t, dt;
 	for(int i = 0; i < steps; i++){ // timestepping loop
         MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
@@ -164,7 +154,7 @@ void WFR_NEW::integrate_window(int steps){
         dt = WF_self->get_time(i+1) - t;
         
         // designed for implicit time_integration in current form
-        // TODO: figure out better method to accurately show percentage of new data being involved?
+        /// \todo figure out better method to accurately show percentage of new data being involved?
         /*
         if (log_pattern){
             if (times_other[IDX] >= t + dt)
@@ -176,7 +166,7 @@ void WFR_NEW::integrate_window(int steps){
         */
         
         // actual timestep
-        prob->do_step(t, dt, (*WF_self)[i+1], WF_other);
+        p->do_step(t, dt, (*WF_calc)[i+1], WF_src);
 
 		msg_sent = i+1;
       	// Send out new data to other process
@@ -187,8 +177,6 @@ void WFR_NEW::integrate_window(int steps){
 }
 
 void WFR_NEW::write_log(int macro, int steps){
-    assert(log_pattern == true);
-
     int log_size = log_p; 
     int log_size_other = 0;
     

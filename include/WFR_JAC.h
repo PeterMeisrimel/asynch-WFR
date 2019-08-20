@@ -7,13 +7,15 @@ December 2018
 #define WFR_JAC_H_
 
 #include "problem.h"
-#include "WFR_synch.h"
+#include "WFR.h"
 
-class WFR_JAC: public WFR_synch{
+class WFR_JAC: public WFR_parallel{
 private:
-    void do_WF_iter        (double, int, int, int); // tol, maxiter, steps_self, steps_other
+    void do_WF_iter(double WF_TOL, int WF_MAX_TOL, int steps_self, int steps_other);
 public:
-    WFR_JAC(int, int, double, Problem *, bool = false, int = 1);// ID_SELF, ID_OTHER, t_end, Problem
+    WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p, bool errlogging = false);
+
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in);
 };
 
 #endif // WFR_JAC_H_

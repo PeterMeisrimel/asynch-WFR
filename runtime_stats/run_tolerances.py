@@ -77,7 +77,11 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
             out_f = output_dir + '/' + str(run_names[w]) + '_' + str(tol) + '.txt'
             out_files['files'].append(out_f)
             
-            run_string = ('mpirun -np 2 ../src/' + folder + '/' + exe +
+            nproc = 2
+            if r == 'GS':
+                nproc = 1
+            
+            run_string = ('mpirun -np ' + str(nproc) + ' ../src/' + folder + '/' + exe +
                          ' -runmode ' + r + ' ' + parameter_string_full + ' >> ' + out_f + '\n')
             #print(run_string)
             print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)

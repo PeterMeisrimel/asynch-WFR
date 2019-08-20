@@ -7,8 +7,57 @@ January 2019
 #include "mpi.h"
 #include <iostream>
 #include <iomanip> // set precision
-#include <cassert>
 #include "math.h" // sqrt
+
+void WFR_serial::set_conv_check_WF_ptr(int conv_which){
+    switch(conv_which){
+        case -1:{
+            WF_conv_check = WF_self;
+            WF_conv_check_last = WF_self_last;
+            break;
+        }
+        case -2:{
+            WF_conv_check = WF_other;
+            WF_conv_check_last = WF_other_last;
+            break;
+        }
+    }
+}
+
+void WFR_parallel::set_conv_check_WF_ptr(int conv_which){
+    switch(conv_which){
+        case -1:{
+            if (ID_SELF == 0){
+                WF_conv_check = WF_self;
+                WF_conv_check_last = WF_self_last;
+            }else{
+                WF_conv_check = WF_other;
+                WF_conv_check_last = WF_other_last;
+            }
+            break;   
+        }
+        case -2:{
+            if (conv_which == -2){
+                if (ID_SELF == 0){
+                    WF_conv_check = WF_other;
+                    WF_conv_check_last = WF_other_last;
+                }else{
+                    WF_conv_check = WF_self;
+                    WF_conv_check_last = WF_self_last;
+                }
+            }
+            break;
+        }
+    }
+}
+
+void WFR::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+    double t;
+    for(int i = 0; i < steps; i++){
+        t = WF_calc->get_time(i);
+        p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
+    }
+}
 
 void WFR::get_relative_tol(){
     switch(conv_which){
@@ -26,23 +75,14 @@ void WFR::get_relative_tol(){
             rel_update_fac = sqrt(w_self*val0 + w_other*val1);
             break;
         }
-        case -1:{
+        default:{
             double val;
-            if (ID_SELF == 0)
-                val = WF_self  ->get_norm_sq_last();
-            else
-                val = WF_other ->get_norm_sq_last();
-            rel_update_fac = sqrt(val);
-            break;
-        }
-        case -2:{
-            double val;
-            if (ID_SELF == 1)
-                val = WF_self  ->get_norm_sq_last();
-            else
-                val = WF_other ->get_norm_sq_last();
-            rel_update_fac = sqrt(val);
-            break;
+            if ((conv_which == -1) || (conv_which == -2)){
+                val = WF_conv_check -> get_norm_sq_last();
+                rel_update_fac = sqrt(val);
+                break;
+            }else
+                throw std::invalid_argument("No method to check for convergence implemented for this input");
         }
     }
 }
@@ -67,24 +107,13 @@ bool WFR::check_convergence(double WF_TOL){
                 update   = sqrt(w_self*up_self + w_other*up_other);
                 break;
             }
-            case -1:{
-                if (ID_SELF == 0)
-                  up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
-                else
-                  up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
-                update = sqrt(up_self);
-                break;
-            }
-            case -2:{
-                if (ID_SELF == 1)
-                  up_self  = WF_self  ->get_err_norm_sq_last(WF_self_last);
-                else
-                  up_self  = WF_other ->get_err_norm_sq_last(WF_other_last);
-                update = sqrt(up_self);
-                break;
-            }
             default:{
-                throw std::invalid_argument("No method to check for convergence implemented for this input");
+                if ((conv_which == -1) || (conv_which == -2)){
+                    up_self  = WF_conv_check -> get_err_norm_sq_last(WF_conv_check_last);
+                    update = sqrt(up_self);
+                    break;
+                }else
+                    throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
         //std::cout << ID_SELF << " " << update/rel_update_fac << " " << WF_TOL << std::endl; 
@@ -94,15 +123,25 @@ bool WFR::check_convergence(double WF_TOL){
     return false;
 }
 
-void WFR::write_results(){
-    int sol_size, sol_other_size, iters;
-    double * sol, *sol_other;
-    double runtime_self, runtime_other;
-
-
-    sol_size = prob->get_length();
+void WFR_serial::write_results(){
+    sol_size = prob_self->get_length();
     sol = new double[sol_size];
-    get_sol(sol);
+    WF_self -> get_last(sol);
+
+    sol_other_size = prob_other->get_length();
+    sol_other = new double[sol_other_size];
+    WF_other -> get_last(sol_other);
+
+    runtime_self = get_runtime();
+    runtime_other = runtime_self;
+    
+    WFR::write_results();
+}
+
+void WFR_parallel::write_results(){
+    sol_size = prob_self->get_length();
+    sol = new double[sol_size];
+    WF_self -> get_last(sol);
 
     MPI_Sendrecv(&sol_size, 1, MPI_INT, ID_OTHER, 0,
                  &sol_other_size, 1, MPI_INT, ID_OTHER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -113,9 +152,14 @@ void WFR::write_results(){
 
     runtime_self = get_runtime();
     runtime_other = 0;
-    MPI_Sendrecv(&runtime_self, 1, MPI_DOUBLE, ID_OTHER, 2,
+    MPI_Sendrecv(&runtime_self,  1, MPI_DOUBLE, ID_OTHER, 2,
                  &runtime_other, 1, MPI_DOUBLE, ID_OTHER, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+    WFR::write_results();
+}
+
+
+void WFR::write_results(){
     iters = get_WF_iters();
 	if(ID_SELF == 0){
         std::cout << std::setprecision(14) << ID_SELF << " " << iters << " " << runtime_self << " ";
@@ -130,30 +174,60 @@ void WFR::write_results(){
     }
 }
 
-void WFR::init_error_log(int num_macro, int WF_MAX_ITER){
+void WFR_serial::init_error_log(int steps_macro, int WF_MAX_ITER){
     if (log_errors){
-        assert(num_macro == 1);
+        if (steps_macro != 1)
+            MPI_Abort(MPI_COMM_WORLD, 2);
         error_log = new double[(WF_MAX_ITER+1)*DIM_SELF];
-		
+        WF_self -> get_last(error_log);
+
+        error_other_log = new double[(WF_MAX_ITER+1)*DIM_OTHER];
+        WF_other -> get_last(error_other_log);
+
+        err_log_counter++; // only one needed since error logging is based on macro steps rather than timesteps
+    }
+}
+
+void WFR_parallel::init_error_log(int steps_macro, int WF_MAX_ITER){
+    if (log_errors){
+        if (steps_macro != 1)
+            MPI_Abort(MPI_COMM_WORLD, 2);
+
+        error_log = new double[(WF_MAX_ITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
         err_log_counter++;
     }
 }
 
-void WFR::update_error_log(){
+void WFR_serial::update_error_log(){
+    if (log_errors){
+        WF_self  -> get_last(error_log       + DIM_SELF *err_log_counter);
+        WF_other -> get_last(error_other_log + DIM_OTHER*err_log_counter);
+        err_log_counter++;
+    }
+}
+
+void WFR_parallel::update_error_log(){
     if (log_errors){
         WF_self -> get_last(error_log + DIM_SELF*err_log_counter);
         err_log_counter++;
     }
 }
 
-void WFR::write_error_log(){
+// void WFR_serial::write_error_log() // not required
+
+void WFR_parallel::write_error_log(){
     if (log_errors){
-        int sol_other_size;
-        double * sol_other = new double[err_log_counter*DIM_OTHER];
+        error_other_log = new double[err_log_counter*DIM_OTHER];
 
         MPI_Sendrecv(error_log, err_log_counter*DIM_SELF, MPI_DOUBLE, ID_OTHER, 1,
-                     sol_other, err_log_counter*DIM_OTHER, MPI_DOUBLE, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     error_other_log, err_log_counter*DIM_OTHER, MPI_DOUBLE, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        WFR::write_error_log();
+    }
+}
+
+void WFR::write_error_log(){
+    if (log_errors){
 	    if(ID_SELF == 0){
             for (int j = 0; j < err_log_counter; j++){
                 std::cout << std::setprecision(14) << ID_SELF << " " << j << " ";
@@ -163,7 +237,7 @@ void WFR::write_error_log(){
 
                 std::cout << std::setprecision(14) << ID_OTHER << " " << j << " ";
 	            for(int i = 0; i < DIM_OTHER; i++)
-                    std::cout << std::setprecision(14) << sol_other[i + j*DIM_OTHER] << " ";
+                    std::cout << std::setprecision(14) << error_other_log[i + j*DIM_OTHER] << " ";
                 std::cout << std::endl;
             }
         }

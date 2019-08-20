@@ -7,15 +7,15 @@ December 2018
 #define WFR_GS_H_
 
 #include "problem.h"
-#include "WFR_synch.h"
+#include "WFR.h"
 
-class WFR_GS: public WFR_synch{
+class WFR_GS: public WFR_serial{
 private:
-    bool FIRST;
-
-    void do_WF_iter        (double, int, int, int); // tol, maxiter, steps_self, steps_other
+    void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_self, int steps_other);
 public:
-    WFR_GS(int, int, double, Problem *, bool, bool = false, int = 1); // ID_SELF, ID_OTHER, t_end, Problem, FIRST
+    WFR_GS(double t_end, Problem * p1, Problem * p2, bool first, bool errlogging = false);
+
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in);
 };
 
 #endif // WFR_GS_H_

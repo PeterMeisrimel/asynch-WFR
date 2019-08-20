@@ -13,10 +13,9 @@ September 2018
 
 using namespace dolfin;
 
-Problem_heat::Problem_heat(int gridsize, double a, double g, double const_c, double bx, double by, int which_u0){
+Problem_heat::Problem_heat(int gridsize, double a, double g, double bx, double by, int which_u0){
     _N     = gridsize;
     _dx    = 1/float(gridsize);
-    _c     = const_c;
     _bx    = bx;
     _by    = by;
 
@@ -37,7 +36,7 @@ Problem_heat::Problem_heat(int gridsize, double a, double g, double const_c, dou
     _a -> lambda_diff = _lambda;
     _a -> dt          = _dt;
 	
-    InitialConditions u_init(const_c, _bx, _by, which_u0);
+    InitialConditions u_init(_bx, _by, which_u0);
     _uold        = std::make_shared<Function>(_V);
     _ucheckpoint = std::make_shared<Function>(_V);
     _uold -> interpolate(u_init);

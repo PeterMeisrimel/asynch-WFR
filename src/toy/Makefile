@@ -4,12 +4,12 @@ CFLAGS=-I$(IDIR)
 
 ODIR = obj
 
-_BASEDEPS = problem.h waveform.h waveform_locking.h WFR.h WFR_GS.h WFR_JAC.h WFR_NEW.h WFR_synch.h input_reader.h
+_BASEDEPS = problem.h waveform.h waveform_locking.h WFR.h WFR_GS.h WFR_JAC.h WFR_NEW.h utils.h
 BASEDEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 LOCALDEPS = problem_toy.h
 
-_OBJ = waveform.o waveform_locking.o WFR.o WFR_GS.o WFR_JAC.o WFR_synch.o WFR_NEW.o input_reader.o problem_toy.o main_toy.o
+_OBJ = waveform.o waveform_locking.o WFR.o WFR_GS.o WFR_JAC.o WFR_NEW.o utils.o problem_toy.o main_toy.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 all : TOY

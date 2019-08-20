@@ -18,8 +18,8 @@ private:
     double cons, bx, by;
 	int which;
 public:
-    InitialConditions(double c, double base_x, double base_y, int which_u0){
-        cons = c;
+    InitialConditions(double base_x, double base_y, int which_u0){
+        cons = 500;
         bx   = base_x;
         by   = base_y;
 		which = which_u0;

@@ -8,45 +8,119 @@ December 2018
 #include "problem.h"
 #include "math.h" // for sqrt
 #include "mpi.h"
+#include <stdexcept>
+#include <iostream>
 
-WFR_GS::WFR_GS(int id_self, int id_other, double t_end, Problem * p, bool first, bool errlogging, int nconv_in){
-    ID_SELF  = id_self;
-    ID_OTHER = id_other;
+WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first, bool errlogging) : WFR_serial(){
     _t_end   = t_end;
-    prob    = p;
+    prob_self  = p1;
+    prob_other = p2;
     FIRST    = first;
     WF_iters = 0;
     log_errors = errlogging;
     err_log_counter = 0;
-    nconv = 0;
-    nconvmax = nconv_in;
+}
+
+void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in){
+    steps_converged = 0;
+    steps_converged_required = steps_converged_required_in;
+    conv_which = conv_check;
+
+    DIM_SELF = prob_self->get_length();
+    DIM_OTHER = prob_other->get_length();
+    prob_self->init_other(DIM_OTHER);
+    prob_other->init_other(DIM_SELF);
+
+    u0_self  = new double[DIM_SELF];
+    u0_other = new double[DIM_OTHER];
+    prob_self->get_u0(u0_self);
+    prob_other->get_u0(u0_other);
+
+    WF_self_last  = new double[DIM_SELF];
+    WF_other_last = new double[DIM_OTHER];
+
+    int WF_LEN_SELF  = steps_self/steps_macro + 1;
+    int WF_LEN_OTHER = steps_other/steps_macro + 1;
+
+    // initiliaze own waveform
+    times_self = new double[WF_LEN_SELF];
+    double dt_self = _t_end/steps_self;
+    for (int i = 0; i < WF_LEN_SELF; i++)
+        times_self[i] = i*dt_self;
+
+    WF_self_data = new double[WF_LEN_SELF * DIM_SELF];
+    WF_self      = new Waveform(WF_LEN_SELF, DIM_SELF, times_self, WF_self_data);
+    WF_self->set_last(u0_self);
+
+
+    // initialize other waveform
+    times_other = new double[WF_LEN_OTHER];
+    double dt_other = _t_end/steps_other;
+    for (int i = 0; i < WF_LEN_OTHER; i++)
+        times_other[i] = i*dt_other;
+
+    WF_other_data = new double[WF_LEN_OTHER * DIM_OTHER];
+    WF_other      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data);
+    WF_other->set_last(u0_other);
+
+    init_error_log(steps_macro, WF_MAX_ITER);
+
+    double window_length = _t_end/steps_macro;
+
+    set_conv_check_WF_ptr(conv_which);
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	runtime = MPI_Wtime(); // runtime measurement start
+    for(int i = 0; i < steps_macro; i++){
+        prob_self->create_checkpoint();
+        prob_other->create_checkpoint();
+
+        WF_self ->get_last(u0_self);
+        WF_self ->set(0, u0_self);
+
+        WF_other->get_last(u0_other);
+        WF_other->set(0, u0_other);
+
+        if (FIRST){ // first == true, self first, then other
+            WF_other->init_by_last();
+        }else{
+            WF_self->init_by_last();
+        }
+
+        get_relative_tol(); // get tolerance for relative update termination check
+      
+        do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
+        if(i != steps_macro - 1){
+            WF_self ->time_shift(window_length);
+            WF_other->time_shift(window_length);
+        }
+    }
+    runtime = MPI_Wtime() - runtime; // runtime measurement end
 }
 
 void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
     first_iter = true;
     for(int i = 0; i < WF_MAX_ITER; i++){ // WF iter loop
         WF_iters++;
-    
+
         if (FIRST){
-            integrate_window(steps_per_window_self);
-            MPI_Sendrecv(WF_self_data , (steps_per_window_self  + 1) * DIM_SELF , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
-                         WF_other_data, (steps_per_window_other + 1) * DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }else{ // not FIRST
-            MPI_Recv(WF_other_data, (steps_per_window_other + 1) * DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            integrate_window(steps_per_window_self);
-            MPI_Send(WF_self_data, (steps_per_window_self + 1) * DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA, MPI_COMM_WORLD);
+            integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
+            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other);
+        }else{
+            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other);
+            integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
         }
-        
+            
         if (check_convergence(WF_TOL)){
-            nconv++;
-            if (nconv >= nconvmax) // sufficiently many steps registered convergence, stop
+            steps_converged++;
+            if (steps_converged >= steps_converged_required) // sufficiently many steps registered convergence, stop
                 break;
         }else{
-            nconv = 0;
+            steps_converged = 0;
         }
-        WF_self ->get_last(WF_self_last);
-        WF_other->get_last(WF_other_last);
-        prob    ->reset_to_checkpoint();
+        WF_self    ->get_last(WF_self_last);
+        WF_other   ->get_last(WF_other_last);
+        prob_self       ->reset_to_checkpoint();
+        prob_other ->reset_to_checkpoint();
     } // END WF iter loop
 }

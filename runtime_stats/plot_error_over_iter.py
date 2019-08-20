@@ -19,7 +19,7 @@ def split_and_float(f):
     return a[0], a[1], a[2:]
 
 tol = 1e-4
-gridsize = 128
+gridsize = 32
 name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
 exe = 'heat_DN'

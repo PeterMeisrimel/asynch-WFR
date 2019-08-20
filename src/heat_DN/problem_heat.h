@@ -18,8 +18,7 @@ using namespace dolfin;
 class Problem_heat : public Problem{
 protected:
     int _N; // meshsize, number of grid cells in one direction, thus points per side = _N + 1
-    double _dx;
-    double _c, _bx, _by; // parameters for building initial condition
+    double _dx, _bx, _by; // parameters for building initial condition
     std::shared_ptr<Constant> _dt;
     std::shared_ptr<Constant> _alpha, _lambda; // equation parameters
 
@@ -43,7 +42,7 @@ protected:
     double * _uother_old, * _uother_new;
 
 public:
-    Problem_heat(int, double, double, double, double, double, int);
+    Problem_heat(int, double, double, double, double, int);
 
     void create_checkpoint(){
         *_ucheckpoint -> vector() = *_uold -> vector();

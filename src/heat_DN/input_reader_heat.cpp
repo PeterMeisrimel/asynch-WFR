@@ -4,13 +4,13 @@ June 2019
 */
 
 #include "input_reader_heat.h"
-#include <cassert> // assert
 #include <string>  // string handling
 #include <stdlib.h> // string to double conversion
 #include <stdexcept>
 
 void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2, double& lambda1, double& lambda2, int& gridsize1, int& gridsize2, int& which_u0){
-	assert( argc % 2 == 1);
+    if (argc % 2 != 1)
+        throw std::invalid_argument("invalid number of input arguments, needs to be even, check for accidental spaces");
 
 	for(int i = 1; i < argc; i+=2){
 		std::string arg = argv[i];

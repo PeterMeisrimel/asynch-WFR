@@ -43,8 +43,13 @@ for steps in steps_list:
     parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])
     out_f = output_dir + '/' + str(steps) + '.txt'
     out_files['files'].append(out_f)
+    
+    nproc = 2
+    if parameters['runmode'] == 'GS':
+        nproc = 1
             
-    run_string = ('mpirun -np 2 ../src/' + folder + '/' + exe + ' ' + parameter_string + ' >> ' + out_f + '\n')
+    run_string = ('mpirun -np ' + str(nproc) + ' ../src/' + folder + '/' + exe + ' ' + parameter_string + 
+                  ' >> ' + out_f + '\n')
     print('running with {} steps'.format(steps))
     subprocess.call(run_string, shell = True)
                 
