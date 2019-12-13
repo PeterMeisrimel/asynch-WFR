@@ -24,11 +24,19 @@ public:
     void set_time_full      (double *);         // times_vec
     void time_shift         (double);           // time
     // evaluate waveform at a given time t, uses linear interpolation or extrapolation
-	void eval               (double, double *); // t, vec (out)
-	void set                (int, double *);    // idx, vec
-	void set_last           (double *);         // vec
-    void get_last           (double *);         // vec (out)
-    void init_by_last       ();                 // set(get_last) for all indices
+	virtual void eval               (double, double *); // t, vec (out)
+	virtual void set                (int, double *);    // idx, vec
+	virtual void set_last           (double *);         // vec
+    virtual void get                (int, double *);    // idx, vec
+    virtual void get_last           (double *);         // vec (out)
+    virtual void get_all            (Waveform *);       // copy data vector
+    virtual void init_by_last       ();                 // set(get_last) for all indices
+    virtual void relax_by           (double, Waveform *); // w, WF_old
+    virtual void relax_by (double, double*); //testing
+    virtual void relax_by_single    (double, int, double *); // w, idx, WF_old
+    virtual void copy(double*); // testing 
+
+// perform relaxation, (w, idx_old, new, out)
 
     // get pointer to according start of vector
     double * operator[] (int i){ return _data + i*_length;};
@@ -36,6 +44,7 @@ public:
     // squared 2-norm of difference between last vector and input vector
     double get_err_norm_sq_last (double *); // vec(in)
     double get_norm_sq_last ();
+    void print();
 
     double * get_data_p()           { return _data;};
     void   * set_data_p(double * p) { _data = p;};

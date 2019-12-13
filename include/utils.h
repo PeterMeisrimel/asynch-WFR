@@ -8,7 +8,7 @@ January 2019
 
 #include "problem.h"
 
-void process_inputs(int, char **, int&, double&, double&, int&, int&, int&, int&, bool&, bool&, bool&, int&);
+void process_inputs(int, char **, int&, double&, double&, int&, int&, int&, int&, bool&, bool&, bool&, bool&, int&, double &, bool &, double &, double &, double &, bool &);
 
 void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double t_end, int timesteps, int argc, char *argv[]);
 

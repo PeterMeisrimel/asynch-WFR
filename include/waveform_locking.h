@@ -27,6 +27,9 @@ public:
     void get_last           (double *);         // vec (out)
     void init_by_last       ();                 // set(get_last) for all indices
 
+    void copy(double * WF_other_data);
+    void relax_by(double w, double * WF_old_data);
+
     // squared 2-norm of difference between last vector and input vector
     double get_err_norm_sq_last (double *); // vec(in)
 };

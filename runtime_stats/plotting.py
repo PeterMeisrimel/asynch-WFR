@@ -32,7 +32,6 @@ with open(path + 'plotting_data.txt', 'r') as myfile:
 parameters = {}
 with open(path + 'parameters.txt', 'r') as myfile:
     parameters = json.load(myfile)
-label = parameters['labels']
     
 ## create necessary directories
 import os
@@ -52,8 +51,8 @@ markers, colors = reset_markers()
 for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = label[num], marker = m, color = c)
-    if k == 'NEW':
+    pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = data[k]['label'], marker = m, color = c)
+    if 'NEW' in k:
         pl.semilogx(data[k]['tols'], data[k]['iters_min'], color = c, lw = 2)
         pl.semilogx(data[k]['tols'], data[k]['iters_max'], color = c, lw = 2)
         
@@ -76,8 +75,8 @@ pl.loglog([float(x) for x in parameters['tolerances']],
 for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = label[num], marker = m, color = c)
-    if k == 'NEW':
+    pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
+    if 'NEW' in k:
         pl.semilogx(data[k]['tols'], data[k]['errors2_min'], color = c, lw = 2)
         pl.semilogx(data[k]['tols'], data[k]['errors2_max'], color = c, lw = 2)
         
@@ -97,8 +96,8 @@ markers, colors = reset_markers()
 for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
-    pl.loglog(data[k]['tols'], data[k]['times_med'], label = label[num], marker = m, color = c)
-    if k == 'NEW':
+    pl.loglog(data[k]['tols'], data[k]['times_med'], label = data[k]['label'], marker = m, color = c)
+    if 'NEW' in k:
         pl.loglog(data[k]['tols'], data[k]['times_min'], color = c, lw = 2)
         pl.loglog(data[k]['tols'], data[k]['times_max'], color = c, lw = 2)
     
@@ -120,7 +119,7 @@ for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     f = next(facecolor)
-    ax.loglog(data[k]['times_med'], data[k]['errors2_med'], label = label[num], marker = m, color = c)
+    ax.loglog(data[k]['times_med'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
     for n, t in enumerate(data[k]['times']):
         val_t = data[k]['times_med'][n]
         min_t = data[k]['times_min'][n]
@@ -149,7 +148,7 @@ for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     f = next(facecolor)
-    pl.semilogx(data[k]['errors2_med'], data[k]['iters_med'], label = label[num], marker = m, color = c)
+    pl.semilogy(data[k]['iters_med'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
     for n, t in enumerate(data[k]['iters_med']):
         val_e = data[k]['errors2_med'][n]
         min_e = data[k]['errors2_min'][n]
@@ -158,11 +157,11 @@ for num, k in enumerate(data.keys()):
         val_i = data[k]['iters_med'][n]
         min_i = data[k]['iters_min'][n]
         max_i = data[k]['iters_max'][n]
-        ax.fill_between([min_e, val_e, max_e], [val_i, max_i, val_i], [val_i, min_i, val_i], facecolor = f, interpolate=True, alpha = 0.3)
+        ax.fill_between([min_i, val_i, max_i], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor = f, interpolate=True, alpha = 0.3)
         
-#ax.set_title('Error vs. Iterations', fontsize = fs + 2)
-ax.set_xlabel('Error', fontsize = fs)
-ax.set_ylabel('Iterations', fontsize = fs)
+ax.set_title('Error vs. Iterations', fontsize = fs + 2)
+ax.set_xlabel('Iterations', fontsize = fs)
+ax.set_ylabel('Error', fontsize = fs)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
 ax.legend(fontsize = fs-12, loc = 0)

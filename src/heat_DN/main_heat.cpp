@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
     int which_conv = -2; // temperature at interface as cancelation criterion
 
     // IMPORTANT TO INITIALIZE PROBLEMS LIKE THIS
-    // ensures that for parallel methods each processor initializes only ones problem and for serial ones, both are initialized
+    // ensures that for parallel methods each processor initializes only one problem and for serial ones, both are initialized
     if (ID_SELF == 0)
         prob1 = new Problem_heat_D(gridsize1, alpha1, lambda1, which_u0);
     if (ID_OTHER == 0)

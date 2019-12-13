@@ -12,144 +12,75 @@ import subprocess
 import datetime
 import json
 
-
-def run_tolerances_sorted(folder, exe, output_dir, out_files, num_proc, times = 10, tolerances = None,
-                   parameters = None, runmodes = None,
-                   first = None, run_names = None, ref_run_name = 'GS',
-                   times_only_new = False):
-    for v, tol in enumerate(tolerances):
-        parameters['wftol'] = tol
-        parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])
-        for w, r in enumerate(runmodes):
-            parameter_string_full = parameter_string + ' -first ' + str(int(first[w]))
-            if v == len(tolerances) - 1 :
-                if run_names[w] != ref_run_name:
-                    continue
-                else:
-                    times = 1
-            out_f = output_dir + '/' + str(run_names[w]) + '_' + str(tol) + '.txt'
-            out_files['files'].append(out_f)
-            
-            run_string = ('mpirun -np ' + str(num_proc) + ' ../src/' + folder + '/' + exe +
-                         ' -runmode ' + r + ' ' + parameter_string_full + ' >> ' + out_f + '\n')
-            #print(run_string)
-            print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)
-            for i in range(times):
-                subprocess.call(run_string, shell = True)
-                if times_only_new and 'NEW' not in r:
-                    break
-
-def run_tolerances(folder, exe, name, times = 10, tolerances = None,
-                   parameters = None, runmodes = None,
-                   first = None, run_names = None, ref_run_name = 'GS',
-                   labels = None, times_only_new = False):
-    # set times_only_new = true to only run new method <times> many times
-    # other methodss are deterministic, several runs only give mean runtime
-    
-    if runmodes is None:
-        runmodes = ['GS', 'JAC', 'NEW']
-    if tolerances is None:
-        tolerances = [10**(-i) for i in range(6)]
-    if parameters is None:
-        parameters = {'timesteps1' : 100, 'timesteps2' : 100, 'macrosteps': 5, 'maxiter': 50}
-    if first is None:
-        first = [True]*len(runmodes)
-    if run_names is None:
-        run_names = runmodes
-    if labels is None:
-        labels = run_names
-        
-        
+def run_tolerances(folder, exe, name, parameters, times = 10, # base inputs
+                       tolerances = None, run_names = None, runmodes = None, ref_run_name = None, # mandatory list based inputs
+                       **kwargs): # optional list based inputs
+    # name as in base name for output and such
+    # non-list based inputs go into "parameters"
+    # list based (optional) parameters go into **kwargs
+    if runmodes is None:   raise ValueError('Runmodes not specified')
+    if tolerances is None: raise ValueError('Tolerances not specified')
+    if run_names is None:  raise ValueError('run_names (name identifiers) not specified')
     for rr in run_names:
-        if ' ' in run_names:
-            raise ValueError('spaces in run_names not permitted')
-        
-    tt = times
-    #########
-    time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')
-    #########
+        if ' ' in run_names: raise ValueError('spaces in run_names not permitted')
+    if len(run_names) != len(set(run_names)):
+        raise ValueError('run_names must be destinct')
+    
+    if 'labels' not in kwargs.keys():
+        labels = run_names.copy()
+    else:
+        labels = kwargs['labels'].copy()
+        if len(labels) != len(run_names): raise ValueError('number of label names does not match number of run_names')
+        del kwargs['labels']
+    
+    
+    # verify all input lists are of same length
+    s = set([len(kwargs[key]) for key in kwargs.keys()] + [len(i) for i in [run_names, runmodes]])
+    if len(s) > 1: raise ValueError('Lengths of input lists do not match up')
+    
+    time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')[:-7]
+    
     # create output directory
-    if not os.path.exists('output'):
-        os.makedirs('output')
-    if "gridsize" in parameters.keys():
+    if not os.path.exists('output'): os.makedirs('output')
+    if "gridsize" in parameters.keys(): 
         output_dir = 'output/{}_{}_{}'.format(name, parameters['gridsize'], time_string)
     else:
         output_dir = 'output/{}_{}'.format(name, time_string)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    #########
+    
     output_content = '{}/content.txt'.format(output_dir)
     output_parameters = '{}/parameters.txt'.format(output_dir)
     out_files = {'files': []}
     
-    # verify all input lists are of same length
-    assert(len(runmodes) == len(run_names))
-    assert(len(run_names) == len(first))
-    assert(len(first) == len(labels))
-    
-    serial = {'runmodes': [], 'run_names': [], 'first': [], 'labels': []}
-    parallel = {'runmodes': [], 'run_names': [], 'first': [], 'labels': []}
-    
-    for i, rm in enumerate(runmodes):
-        if 'GS' in rm:
-            serial['runmodes'].append(runmodes[i])
-            serial['run_names'].append(run_names[i])
-            serial['first'].append(first[i])
-            serial['labels'].append(labels[i])
-        else:
-            parallel['runmodes'].append(runmodes[i])
-            parallel['run_names'].append(run_names[i])
-            parallel['first'].append(first[i])
-            parallel['labels'].append(labels[i])
-            
     import threading
-    # SERIAL STUFF
-    args_serial = (folder, exe, output_dir, out_files, 1, times, tolerances,
-                   parameters, serial['runmodes'], serial['first'], serial['run_names'],
-                   ref_run_name, times_only_new)
-    thread_serial = threading.Thread(target = run_tolerances_sorted, args = args_serial)
-    # PARALLEL STUFF
-    args_parallel = (folder, exe, output_dir, out_files, 2, times, tolerances,
-                            parameters, parallel['runmodes'], parallel['first'], parallel['run_names'],
-                            ref_run_name, times_only_new)
-    thread_parallel = threading.Thread(target = run_tolerances_sorted, args = args_parallel)
+    shared_par = [folder, exe, output_dir, out_files, parameters, times, tolerances, ref_run_name]
+    # SERIAL, 1 processor, 'GS' in runmode as indicator
+    serial_kwargs = {'runmodes': [r for r in runmodes if 'GS' in r],
+                     'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' in r]}
+    for key in kwargs.keys():
+        serial_kwargs[key] = [kwargs[key][i] for i, r in enumerate(runmodes) if 'GS' in r]
+        
+    thread_serial = threading.Thread(target = run_tolerances_thread,
+                                     args = shared_par + [1], kwargs = serial_kwargs)
+    
+    # PARALLEL, 2 processors
+    par_kwargs = {'runmodes': [r for r in runmodes if 'GS' not in r],
+                  'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' not in r]}
+    for key in kwargs.keys():
+        par_kwargs[key] = [kwargs[key][i] for i, r in enumerate(runmodes) if 'GS' not in r]
+        
+    thread_parallel = threading.Thread(target = run_tolerances_thread,
+                                       args = shared_par + [2], kwargs = par_kwargs)
     
     thread_serial.start()
     thread_parallel.start()
     thread_serial.join()
-    thread_parallel.join()
-            
-    """
-    for v, tol in enumerate(tolerances):
-        parameters_run['wftol'] = tol
-        parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters_run[key]) for key in parameters_run.keys()])
-        for w, r in enumerate(runmodes):
-            parameter_string_full = parameter_string + ' -first ' + str(int(first[w]))
-            if v == len(tolerances) - 1 :
-                if run_names[w] != ref_run_name:
-                    continue
-                else:
-                    times = 1
-            out_f = output_dir + '/' + str(run_names[w]) + '_' + str(tol) + '.txt'
-            out_files['files'].append(out_f)
-            
-            nproc = 2
-            if r == 'GS':
-                nproc = 1
-            
-            run_string = ('mpirun -np ' + str(nproc) + ' ../src/' + folder + '/' + exe +
-                         ' -runmode ' + r + ' ' + parameter_string_full + ' >> ' + out_f + '\n')
-            #print(run_string)
-            print('running', r, '({})'.format(run_names[w]), 'for tolerance of', tol)
-            for i in range(times):
-                subprocess.call(run_string, shell = True)
-                if times_only_new and 'NEW' not in r:
-                    break
-    """
+    thread_parallel.join() #to get most relevant 
                 
     with open(output_content, 'w') as myfile:
         myfile.write(json.dumps(out_files, indent = 4))
-        
+    
     parameters['runmodes'] = runmodes
     parameters['folder'] = folder
     parameters['executable'] = exe
@@ -158,8 +89,37 @@ def run_tolerances(folder, exe, name, times = 10, tolerances = None,
     parameters['reference_sol'] = ref_run_name
     parameters['labels'] = labels
     parameters['tolerances'] = tolerances
-    parameters['times'] = tt        
+    parameters['times'] = times        
     
     with open(output_parameters, 'w') as myfile:
         myfile.write(json.dumps(parameters, indent = 4, sort_keys = True))
     return output_dir + '/'
+
+def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times, tolerances,
+                          ref_run_name, num_proc, runmodes, run_names, **kwargs):
+    for i, tol in enumerate(tolerances):
+        last = False
+        parameters['wftol'] = tol
+        parameter_string = ' '.join([f'-{key} {parameters[key]}' for key in parameters.keys()])
+        for j, r in enumerate(runmodes):
+            string_full = parameter_string + ' ' + ' '.join([f'-{key} {kwargs[key][j]}' for key in kwargs.keys()])
+            
+            if i == len(tolerances) - 1:
+                if run_names[j] != ref_run_name:
+                    continue
+                else:
+                    last = True
+            out_f = output_dir + '/' + str(run_names[j]) + '_' + str(tol) + '.txt'
+            out_files['files'].append(out_f)
+            
+            run_string = (f'mpirun -np {num_proc} ../src/{folder}/{exe} -runmode {r} {string_full} >> {out_f}\n')
+            #print(run_string)
+            print(f'running {r} ({run_names[j]}) for tolerance of {tol}')
+            for _ in range(times):
+                subprocess.call(run_string, shell = True)
+                if last: break
+                try:
+                    if parameters['times_only_new'] and 'NEW' not in r:
+                        break
+                except KeyError: # in case times_only_new not set, noting bad should happen
+                    pass

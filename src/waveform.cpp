@@ -7,6 +7,7 @@ December 2018
 #define WAVEFORM_CPP_
 
 #include "waveform.h"
+#include <iostream>
 
 Waveform::Waveform(int n, int length, double * t, double * data){
 	_n      = n;
@@ -63,14 +64,34 @@ void Waveform::set_last(double * vec){
     set(_n - 1, vec);
 }
 
+void Waveform::get(int idx, double * out){
+    for(int i = 0; i < _length; i++)
+        out[i] = _data[idx*_length + i];
+}
+
 void Waveform::get_last(double * out){
     for(int i = 0; i < _length; i++)
         out[i] = _data[(_n - 1)*_length + i];
 }
 
+void Waveform::get_all(Waveform * WF_out){
+    for(int i = 0; i < _length*_n; i++)
+        WF_out->_data[i] = _data[i];
+}
+
 void Waveform::init_by_last(){
     for(int i = 0; i < _n - 1; i++)
         set(i, _data + _length*(_n - 1));
+}
+
+void Waveform::relax_by(double w, Waveform * WF_old){
+    for(int i = _length; i < _length*_n; i++)
+        _data[i] = (1 - w)*WF_old->_data[i] + w*_data[i];
+}
+
+void Waveform::relax_by_single(double w, int idx, double * uold){
+    for(int i = 0; i < _length; i++)
+        _data[idx*_length + i] = (1 - w)*uold[i] + w*_data[idx*_length + i];
 }
 
 double Waveform::get_err_norm_sq_last(double * in){
@@ -91,11 +112,28 @@ double Waveform::get_norm_sq_last(){
     return res;
 }
 
+void Waveform::print(){
+    for(int i = 0; i < _length*_n; i++)
+        std::cout << _data[i] << " ";
+    std::cout << std::endl;
+}
+
 void WF_swap_data_pointers(Waveform * wf1, Waveform * wf2){
     double * tmp;
     tmp = wf2 -> get_data_p();
     wf2 -> set_data_p(wf1 -> get_data_p());
     wf1 -> set_data_p(tmp);
+}
+
+// testing
+void Waveform::copy(double * WF_other_data){
+    for(int i = _length; i < _length*_n; i++)
+        WF_other_data[i] = _data[i];
+}
+
+void Waveform::relax_by(double w, double * WF_old_data){
+    for(int i = _length; i < _length*_n; i++)
+        _data[i] = (1 - w)*WF_old_data[i] + w*_data[i];
 }
 
 #endif // WAVEFORM_CPP_

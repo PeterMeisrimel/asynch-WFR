@@ -9,43 +9,51 @@ January 2019
 #include <iomanip> // set precision
 #include "math.h" // sqrt
 
-void WFR_serial::set_conv_check_WF_ptr(int conv_which){
+void WFR_serial::set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax){
+    RELAX_0 = RELAX;
+    RELAX_1 = RELAX;
     switch(conv_which){
-        case -1:{
+        case -1:{ // use ouput of first model (ID_SELF == 0) as measurement for convergence
             WF_conv_check = WF_self;
             WF_conv_check_last = WF_self_last;
+            if (match_which_conv_relax) // only relaxation on output of first model
+                RELAX_1 = false; // => deactivate relaxation for 1st processor
             break;
         }
-        case -2:{
+        case -2:{ // use ouput of second model (ID_SELF == 1) as measurement for convergence
             WF_conv_check = WF_other;
             WF_conv_check_last = WF_other_last;
+            if (match_which_conv_relax) // only relaxation on output of second model
+                RELAX_0 = false; // => deactive relaxation for 2nd processor
             break;
         }
     }
 }
 
-void WFR_parallel::set_conv_check_WF_ptr(int conv_which){
+void WFR_parallel::set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax){
     switch(conv_which){
-        case -1:{
+        case -1:{ // use ouput of first model (ID_SELF == 0) as measurement for convergence
             if (ID_SELF == 0){
                 WF_conv_check = WF_self;
                 WF_conv_check_last = WF_self_last;
             }else{
                 WF_conv_check = WF_other;
                 WF_conv_check_last = WF_other_last;
+                if (match_which_conv_relax) // only relaxation for output of first model
+                    RELAX = false; // deactivate relaxation for ID_SELF == 1
             }
             break;   
         }
-        case -2:{
-            if (conv_which == -2){
-                if (ID_SELF == 0){
-                    WF_conv_check = WF_other;
-                    WF_conv_check_last = WF_other_last;
+        case -2:{ // use ouput of second model (ID_SELF == 1) as measurement for convergence
+            if (ID_SELF == 0){
+                WF_conv_check = WF_other;
+                WF_conv_check_last = WF_other_last;
+                if (match_which_conv_relax) // only relaxation on output of second model
+                    RELAX = false; // => deactive relaxation for output of first model
                 }else{
                     WF_conv_check = WF_self;
                     WF_conv_check_last = WF_self_last;
                 }
-            }
             break;
         }
     }
@@ -53,9 +61,35 @@ void WFR_parallel::set_conv_check_WF_ptr(int conv_which){
 
 void WFR::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
     double t;
-    for(int i = 0; i < steps; i++){
-        t = WF_calc->get_time(i);
-        p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
+    if (RELAX){
+        for(int i = 0; i < steps; i++){
+            t = WF_calc->get_time(i);
+            WF_calc -> get(i+1, relax_aux_vec); // store previous iterate at new timepoint 
+            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
+            WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
+        }
+    }else{
+        for(int i = 0; i < steps; i++){
+            t = WF_calc->get_time(i);
+            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
+        }
+    }
+}
+
+void WFR::integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+    double t;
+    if (RELAX){
+        for(int i = start; i < start + steps; i++){
+            t = WF_calc->get_time(i);
+            WF_calc -> get(i+1, relax_aux_vec); // store previous iterate at new timepoint 
+            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
+            WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
+        }
+    }else{
+        for(int i = start; i < start + steps; i++){
+            t = WF_calc->get_time(i);
+            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
+        }
     }
 }
 
@@ -97,6 +131,8 @@ bool WFR::check_convergence(double WF_TOL){
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
                 up_other = WF_other->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(up_self + up_other);
+
+                //std::cout << ID_SELF << " " << up_self << " " << up_other << std::endl; 
                 break;
             }
             case 1:{ // weighted scale norm
@@ -116,7 +152,6 @@ bool WFR::check_convergence(double WF_TOL){
                     throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
-        //std::cout << ID_SELF << " " << update/rel_update_fac << " " << WF_TOL << std::endl; 
         if (update/rel_update_fac < WF_TOL)
             return true;
     }// END ELSE

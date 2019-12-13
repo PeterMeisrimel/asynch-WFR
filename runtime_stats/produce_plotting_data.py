@@ -23,8 +23,8 @@ def produce_plotting_data(path):
         data = json.load(myfile)
         
     results = {}
-    for r in parameters['run_names']:
-        results[r] = {}
+    for i, r in enumerate(parameters['run_names']):
+        results[r] = {'label': parameters['labels'][i]}
         
         ## tolerances
         tols = [i['tol'] for i in data[r]]

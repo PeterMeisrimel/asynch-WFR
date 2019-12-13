@@ -19,10 +19,16 @@ WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p, boo
     err_log_counter = 0;
 }
 
-void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in){
+void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param, bool match_which_conv_relax){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = steps_converged_required_in;
+
+    w_relax = relax_param;
+    if (w_relax == 1)
+        RELAX = false;
+    else
+        RELAX = true;
 
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
@@ -51,6 +57,9 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_self      = new Waveform(WF_LEN_SELF, DIM_SELF, times_self, WF_self_data);
     WF_self->set_last(u0_self);
 
+    if (RELAX){
+        relax_aux_vec = new double[DIM_SELF];
+    }
 
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
@@ -70,7 +79,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
     double window_length = _t_end/steps_macro;
 
-    set_conv_check_WF_ptr(conv_which);
+    set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	runtime = MPI_Wtime(); // runtime measurement start
@@ -94,6 +103,12 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
 void WFR_JAC::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
     first_iter = true;
+
+    if (RELAX){
+        WF_other->init_by_last();
+        WF_self->init_by_last();
+    }
+
     for(int i = 0; i < WF_MAX_ITER; i++){ // WF iter loop
         WF_iters++;
         

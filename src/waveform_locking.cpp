@@ -73,4 +73,18 @@ double Waveform_locking::get_err_norm_sq_last(double * in){
     return res;
 }
 
+void Waveform_locking::copy(double * WF_other_data){
+    MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, *_win);
+    for(int i = _length; i < _length*_n; i++)
+        WF_other_data[i] = _data[i];
+    MPI_Win_unlock(ID_SELF, *_win);
+}
+
+void Waveform_locking::relax_by(double w, double * WF_old_data){
+    MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, *_win);
+    for(int i = _length; i < _length*_n; i++)
+        _data[i] = (1 - w)*WF_old_data[i] + w*_data[i];
+    MPI_Win_unlock(ID_SELF, *_win);
+}
+
 #endif // WAVEFORM_LOCKING_CPP_

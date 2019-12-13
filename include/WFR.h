@@ -10,6 +10,7 @@ const int TAG_IDX  = 1;
 const int TAG_TIME = 2;
 const int TAG_DATA = 3;
 const int TAG_DONE = 4;
+const int TAG_MISC = 5;
 
 #endif // MPI_TAGS_
 
@@ -38,6 +39,10 @@ protected:
     double   *WF_self_last, *WF_other_last;
     double   *times_self  , *times_other;
 
+    // relaxation
+    bool RELAX;
+    double w_relax;
+    double * relax_aux_vec;
 
     // termination criterion
     bool first_iter;
@@ -60,13 +65,15 @@ protected:
 
     virtual void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_self, int steps_other) = 0;
     virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
+    virtual void integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
 public:
     WFR(){
         MPI_Comm_size(MPI_COMM_WORLD, &np);
     };
-    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check = 1, int steps_converged_in = 1) = 0;
+    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+                     int conv_check = 1, int steps_converged_in = 1, double w_relax = 1, bool match_which_conv_relax = false) = 0;
 
-    virtual void set_conv_check_WF_ptr(int conv_which) = 0;
+    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax) = 0;
     virtual bool check_convergence(double WF_TOL);
     virtual void get_relative_tol();
 
@@ -89,12 +96,14 @@ class WFR_serial: public WFR{
 protected:
     Problem * prob_other;
     bool FIRST; // to define the ordering for coupling two problems
+    bool RELAX_0, RELAX_1; // need more relaxation flags for possibility of only relaxing a single interface
+
 public:
     WFR_serial() : WFR(){
         ID_SELF = 0;
         ID_OTHER = 1;
     };
-    void set_conv_check_WF_ptr(int conv_which);
+    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
     void write_results();
 
     void init_error_log(int, int);
@@ -107,7 +116,7 @@ public:
         ID_SELF = id_in_self;
         ID_OTHER = id_in_other;
     };
-    void set_conv_check_WF_ptr(int conv_which);
+    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
     void write_results();
 
     void init_error_log(int, int);
