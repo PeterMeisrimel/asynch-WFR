@@ -13,29 +13,29 @@ September 2018
 #include "mpi.h"
 #include "heat.h" // generated from heat.cfl
 
-using namespace dolfin;
+//using namespace dolfin;
 
 class Problem_heat : public Problem{
 protected:
     int _N; // meshsize, number of grid cells in one direction, thus points per side = _N + 1
     double _dx, _bx, _by; // parameters for building initial condition
-    std::shared_ptr<Constant> _dt;
-    std::shared_ptr<Constant> _alpha, _lambda; // equation parameters
+    std::shared_ptr<dolfin::Constant> _dt;
+    std::shared_ptr<dolfin::Constant> _alpha, _lambda; // equation parameters
 
-    std::shared_ptr<UnitSquareMesh> _mesh;
-    std::shared_ptr<FunctionSpace> _V; // FunctionSpace
+    std::shared_ptr<dolfin::UnitSquareMesh> _mesh;
+    std::shared_ptr<dolfin::FunctionSpace> _V; // FunctionSpace
 
     // boundary stuff
-    std::shared_ptr<Constant> _dirichlet_boundary_val;
-    const DirichletBC * _BC;
-    std::vector<const DirichletBC *> _bcs;
+    std::shared_ptr<dolfin::Constant> _dirichlet_boundary_val;
+    const dolfin::DirichletBC * _BC;
+    std::vector<const dolfin::DirichletBC *> _bcs;
   
-    std::shared_ptr<Function> _uold;
-    std::shared_ptr<Function> _ucheckpoint;
+    std::shared_ptr<dolfin::Function> _uold;
+    std::shared_ptr<dolfin::Function> _ucheckpoint;
     //Function * _unew;
-    std::shared_ptr<Function> _unew;
-    std::shared_ptr<Function> _rhs_fold;
-    std::shared_ptr<Function> _rhs_fnew;
+    std::shared_ptr<dolfin::Function> _unew;
+    std::shared_ptr<dolfin::Function> _rhs_fold;
+    std::shared_ptr<dolfin::Function> _rhs_fnew;
 
     heat::BilinearForm * _a;
     heat::LinearForm   * _L;

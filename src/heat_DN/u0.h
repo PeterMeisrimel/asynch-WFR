@@ -10,10 +10,10 @@ December 2018
 #include "math.h"
 #include <iostream>
 
-using namespace dolfin;
+//using namespace dolfin;
 
 // Initial condition
-class InitialConditions : public Expression{
+class InitialConditions : public dolfin::Expression{
 private:
     double cons, bx, by;
 	int which;
@@ -24,7 +24,7 @@ public:
         by   = base_y;
 		which = which_u0;
     }
-    void eval(Array<double>& values, const Array<double>& x) const{
+    void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const{
 		switch (which){
 			case 0:{
 				values[0]= cons*sin(M_PI*(bx + x[0])/2)*sin(M_PI*(by + x[1]));

@@ -14,8 +14,6 @@ September 2018
 #include "mpi.h"
 #include "heat.h" // generated from heat.cfl
 
-using namespace dolfin;
-
 // Dirichlet part of a coupled heat equation
 // interface on right-hand side 
 

@@ -7,7 +7,7 @@ September 2018
 #define INT_EXPRESSION_H_
 
 // Expression class used to interpolate discrete data, used for exchange over interface
-class InterpolatedExpression : public Expression{
+class InterpolatedExpression : public dolfin::Expression{
 private:
     int _N;
 	double _dx;
@@ -20,7 +20,7 @@ public:
     void set_vals(double * in){ 
         _vals = in;
     };
-    void eval(Array<double>& values, const Array<double>& x) const{
+    void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const{
         int i;
         // find smallest i such that i*_dx > x[1] (yes, strict)
         for(i = 1; i < _N; i++)

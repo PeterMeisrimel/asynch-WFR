@@ -10,7 +10,7 @@ December 2018
 #include "math.h"
 
 // Reference solution for the given initial conditions, geometry and constant parameters alpha and lambda
-class ReferenceSolution : public Expression{
+class ReferenceSolution : public dolfin::Expression{
 private:
     double alpha, lambda, cons, t_end;
 public:
@@ -21,7 +21,7 @@ public:
         t_end = t;
     }
 
-    void eval(Array<double>& values, const Array<double>& x) const{
+    void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const{
         values[0]= cons*sin(M_PI*x[0]/2)*sin(M_PI*x[1])*exp(-5.0/4.0*lambda/alpha*M_PI*M_PI*t_end);
     }
 };

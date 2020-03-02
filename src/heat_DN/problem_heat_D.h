@@ -15,8 +15,6 @@ September 2018
 #include "heat.h" // generated from heat.cfl
 #include "heat_flux.h" // generated from heat_flux.cfl
 
-using namespace dolfin;
-
 // Dirichlet part of a coupled heat equation
 // interface on right-hand side 
 
@@ -24,15 +22,15 @@ class Problem_heat_D : public Problem_heat{
 private:
     std::shared_ptr<Boundaries_D> _dirichlet_boundary;
     std::shared_ptr<Interface_D> _dirichlet_boundary_inft;
-    const DirichletBC * _BC_inft;
+    const dolfin::DirichletBC * _BC_inft;
   
     std::shared_ptr<InterpolatedExpression> _interface_vals;
 
     void get_flux(double, double*);
 
     heat_flux::LinearForm * _heat_F;
-    std::shared_ptr<Function> _flux_function;
-    Vector * _flux_vec;
+    std::shared_ptr<dolfin::Function> _flux_function;
+    dolfin::Vector * _flux_vec;
 public:
     // gridsize, alpha, lambda
     Problem_heat_D(int, double, double, int = 0);

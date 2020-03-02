@@ -11,8 +11,8 @@ December 2018
 #include "dolfin.h"
 
 int main(int argc, char *argv[]){
-    init(argc, argv);
-    set_log_level(30); // fenics output level: "things that may go boom later"
+    dolfin::init(argc, argv);
+    dolfin::set_log_level(30); // fenics output level: "things that may go boom later"
 
 	int np, ID_SELF, ID_OTHER;
     MPI_Comm_rank(MPI_COMM_WORLD, &ID_SELF);

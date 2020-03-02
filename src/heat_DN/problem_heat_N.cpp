@@ -14,14 +14,14 @@ Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, int which) : Pr
     for(int i = 0; i < _length; i++)
         _u0[i] = (*_uold)(0, i*_dx);
 
-    _dirichlet_boundary_val = std::make_shared<Constant>(0.0);
+    _dirichlet_boundary_val = std::make_shared<dolfin::Constant>(0.0);
     _dirichlet_boundary     = std::make_shared<Boundaries_N>();
-    _BC = new DirichletBC(_V, _dirichlet_boundary_val, _dirichlet_boundary);
+    _BC = new dolfin::DirichletBC(_V, _dirichlet_boundary_val, _dirichlet_boundary);
 
     _bcs.push_back(_BC);
 
-    _rhs_fold = std::make_shared<Function>(_V);
-    _rhs_fnew = std::make_shared<Function>(_V);
+    _rhs_fold = std::make_shared<dolfin::Function>(_V);
+    _rhs_fnew = std::make_shared<dolfin::Function>(_V);
     _L -> fold = _rhs_fold;
     _L -> fnew = _rhs_fnew;
 }
@@ -53,7 +53,7 @@ void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_i
 
 	_L -> u0 = _uold;
 	*_dt = dt;
-	solve(*_a == *_L, *_unew, _bcs);
+	dolfin::solve(*_a == *_L, *_unew, _bcs);
 
     *_uold->vector() = *(_unew -> vector());
 
