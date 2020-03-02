@@ -28,6 +28,17 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, int which) : Pr
 
     _unew->vector() = _uold->vector();
 
+    _heat_F = new heat_flux::LinearForm(_V);
+    _heat_F -> alpha = _alpha;
+    _heat_F -> lambda_diff = _lambda;
+    _heat_F -> dt = _dt;
+    _heat_F -> uold = _uold;
+    _heat_F -> unew = _unew;
+
+    _flux_function = std::make_shared<Function>(_V);
+    _flux_vec = new Vector(MPI_COMM_SELF, (_N+1)*(_N+1)); // Is this too large or just right?
+    _flux_vec -> zero();
+    
     get_flux(1., _u0);
 }
 
@@ -44,8 +55,20 @@ void Problem_heat_D::init_other(int len_other){
 
 // compute fluxes
 void Problem_heat_D::get_flux(double dt, double * flux_out){
+	*_dt = dt;
+    /*
     for(int i = 0; i < _length; i++)
         flux_out[i] = (*_lambda)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx;
+    */
+    assemble(*_flux_vec, *_heat_F);
+    //*_flux_vec /= _dx;
+    *(_flux_function -> vector()) = *_flux_vec;
+    for(int i = 0; i < _length; i++){
+        flux_out[i] = -(*_flux_function)(1, i*_dx); // negative flux
+        //flux_out[i] = -(2*(*_flux_function)(1, i*_dx) - _u0[i]); // negative flux
+        //std::cout << "new " << -flux_out[i] << " old " << (*_lambda)*((*_uold)(1, i*_dx) - (*_uold)(1-_dx, i*_dx))/_dx << std::endl;
+        //_u0[i] = flux_out[i];
+    }
 }
 
 void Problem_heat_D::do_step(double t, double dt, double * unew, Waveform * WF_in){

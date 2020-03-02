@@ -17,6 +17,5 @@ fold   = Coefficient(element)
 fnew   = Coefficient(element)
 
 eq = alpha*u*v*dx - alpha*u0*v*dx + 0.5*lambda_diff*dt*dot(grad(u) + grad(u0), grad(v))*dx + 0.5*dt*(fold + fnew)*v*ds
-#eq = alpha*u*v*dx - alpha*u0*v*dx + lambda_diff*dt*dot(grad(u), grad(v))*dx + dt*fnew*v*ds
 a = lhs(eq)
 L = rhs(eq)

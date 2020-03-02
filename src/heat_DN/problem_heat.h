@@ -32,7 +32,8 @@ protected:
   
     std::shared_ptr<Function> _uold;
     std::shared_ptr<Function> _ucheckpoint;
-    Function * _unew;
+    //Function * _unew;
+    std::shared_ptr<Function> _unew;
     std::shared_ptr<Function> _rhs_fold;
     std::shared_ptr<Function> _rhs_fnew;
 

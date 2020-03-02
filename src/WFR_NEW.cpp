@@ -422,7 +422,7 @@ void WFR_NEW_relax_opt::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         // all outstanding RMA (send) operations done up to this point
-        MPI_Barrier(MPI_COMM_WORLD); // previous sendrecv acts as barrier?
+        //MPI_Barrier(MPI_COMM_WORLD); // previous sendrecv acts as barrier?
         // sync data
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // Excl since it is updating self
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
@@ -503,7 +503,8 @@ void WFR_NEW_relax_opt::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
             MPI_Win_unlock(ID_SELF, WIN_data);
             relax_self_done_flag[i+1] = true; // mark timestep as relaxated via GS
 
-            if ((not relax_self_done_flag[i]) and WF_other_data_recv_flag[i]){ // data not relaxed, but new values arrived in the meantime (during previous timestep)
+            //if ((not relax_self_done_flag[i]) and WF_other_data_recv_flag[i]){ // data not relaxed, but new values arrived in the meantime (during previous timestep)
+            if (not relax_self_done_flag[i]){ // data not relaxed, but new values arrived in the meantime (during previous timestep)
                 MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
                 for (int j = 0; j < DIM_OTHER; j++)
                     WF_other_data[i*DIM_OTHER + j] = (1 - w_relax_jac)*WF_other_data[i*DIM_OTHER + j] + w_relax_jac*WF_recv_data[i*DIM_OTHER + j];

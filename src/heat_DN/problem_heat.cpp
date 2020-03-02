@@ -40,7 +40,8 @@ Problem_heat::Problem_heat(int gridsize, double a, double g, double bx, double b
     _uold        = std::make_shared<Function>(_V);
     _ucheckpoint = std::make_shared<Function>(_V);
     _uold -> interpolate(u_init);
-    _unew = new Function(_V);   
+    //_unew = new Function(_V);
+    _unew = std::make_shared<Function>(_V);
 }
 
 #endif //PROBLEM_HEAT_CPP_

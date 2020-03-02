@@ -1,0 +1,20 @@
+# compile via   ffc -l dolfin heat_flux.ufl
+# grid
+cell = triangle
+element = FiniteElement("Lagrange", cell, 1)
+
+v = TestFunction(element)
+
+# solutions
+unew = Coefficient(element)
+uold = Coefficient(element)
+
+# heat equation constants and timestep
+alpha  = Constant(cell)
+lambda_diff = Constant(cell)
+dt     = Constant(cell)
+
+L = alpha*inner((unew - uold)/dt, v)*dx + lambda_diff*inner(grad(unew), grad(v))*dx
+#a = inner(ures, v)*dx
+#L = inner()
+#L = alpha*inner((unew - uold)/dt, v)*dx + lambda_diff*inner(grad(unew), grad(v))*dx
