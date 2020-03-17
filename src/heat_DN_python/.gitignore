@@ -1,0 +1,5 @@
+__pycache__
+obj/*
+*.png
+py_cpp
+HEAT_PYTHON

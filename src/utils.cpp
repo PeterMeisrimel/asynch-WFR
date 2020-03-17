@@ -15,8 +15,9 @@ January 2019
 #include "mpi.h"
 
 void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end, int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter, bool& FIRST, bool& error_logging, bool& comm_logging, int& nconv, double &w_relax, bool &relax_type, bool &new_relax_opt, double &w_relax_jac, double &w_relax_gs1, double &w_relax_gs2, bool &match_which_conv_relax){
-    if (argc % 2 != 1)
+    if (argc % 2 != 1){
         throw std::invalid_argument("invalid number of input arguments, needs to be even, check for accidental spaces");
+	}
 
 	for(int i = 1; i < argc; i+=2){
 		std::string arg = argv[i];
@@ -153,4 +154,5 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         MPI_Barrier(MPI_COMM_WORLD);
         wfr_method -> write_error_log();
     }
+	MPI_Barrier(MPI_COMM_WORLD);
 }

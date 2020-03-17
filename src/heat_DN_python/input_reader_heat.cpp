@@ -12,7 +12,6 @@ void process_inputs_heat(int argc, char **argv , double& alpha1, double& alpha2,
     if (argc % 2 != 1){
         throw std::invalid_argument("invalid number of input arguments, needs to be even, check for accidental spaces");
 	}
-
 	for(int i = 1; i < argc; i+=2){
 		std::string arg = argv[i];
 		if (arg == "-alpha"){

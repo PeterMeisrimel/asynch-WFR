@@ -32,9 +32,9 @@ endif()
 # Do not throw error for 'multi-line comments' (these are typical in
 # rst which includes LaTeX)
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-Wno-comment" HAVE_NO_MULTLINE)
+CHECK_CXX_COMPILER_FLAG("-Wall" HAVE_NO_MULTLINE)
 if (HAVE_NO_MULTLINE)
-  set(CMAKE_CXX_FLAGS "-Wno-comment ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
 endif()
 
 # Executable

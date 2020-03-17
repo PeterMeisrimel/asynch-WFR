@@ -97,7 +97,6 @@ protected:
     Problem * prob_other;
     bool FIRST; // to define the ordering for coupling two problems
     bool RELAX_0, RELAX_1; // need more relaxation flags for possibility of only relaxing a single interface
-
 public:
     WFR_serial() : WFR(){
         ID_SELF = 0;

@@ -10,3 +10,7 @@ cd ../heat_DN
 ffc -l dolfin heat.ufl
 cmake .
 make
+
+cd ../heat_DN_python
+mkdir obj
+make

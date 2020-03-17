@@ -15,6 +15,3 @@ lambda_diff = Constant(cell)
 dt     = Constant(cell)
 
 L = alpha*inner((unew - uold)/dt, v)*dx + lambda_diff*inner(grad(unew), grad(v))*dx
-#a = inner(ures, v)*dx
-#L = inner()
-#L = alpha*inner((unew - uold)/dt, v)*dx + lambda_diff*inner(grad(unew), grad(v))*dx

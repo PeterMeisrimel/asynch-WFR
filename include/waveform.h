@@ -46,8 +46,8 @@ public:
     double get_norm_sq_last ();
     void print();
 
-    double * get_data_p()           { return _data;};
-    void   * set_data_p(double * p) { _data = p;};
+    double* get_data_p()          { return _data;};
+    void   set_data_p(double * p) { _data = p;};
 };
 
 void WF_swap_data_pointers(Waveform *, Waveform *);

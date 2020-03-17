@@ -71,8 +71,9 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
-    for (int i = 0; i < WF_LEN_OTHER; i++)
+    for (int i = 0; i < WF_LEN_OTHER; i++){
         times_other[i] = i*dt_other;
+	}
 
 	MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data, &WIN_data);
     WF_other = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data, &WIN_data, ID_SELF);

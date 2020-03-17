@@ -17,7 +17,7 @@ protected:
 public:
     int get_length(){ return _length;}; // 
     // u (inout)
-    void get_u0(double *uout){
+    virtual void get_u0(double *uout){
         for(int i = 0; i < _length; i++)
             uout[i] = _u0[i];
     };

@@ -1,6 +1,6 @@
 IDIR =../../include
 CC=mpic++
-CFLAGS=-I$(IDIR)
+CFLAGS=-I$(IDIR) -Wall
 
 ODIR = obj
 
