@@ -39,10 +39,12 @@ int main(int argc, char *argv[]){
 
     // IMPORTANT TO INITIALIZE PROBLEMS LIKE THIS
     // ensures that for parallel methods each processor initializes only one problem and for serial ones, both are initialized
-    if (ID_SELF == 0)
+    if (ID_SELF == 0){
         prob1 = new Problem_heat_D(gridsize1, alpha1, lambda1, which_u0);
-    if (ID_OTHER == 0)
+	}
+    if (ID_OTHER == 0){
         prob2 = new Problem_heat_N(gridsize2, alpha2, lambda2, which_u0);
+	}
 
     setup_and_run_WFR(prob1, prob2, which_conv, t_end, timesteps, argc, argv);
 

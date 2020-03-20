@@ -144,6 +144,10 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             }
 			break;
         }
+		default:{
+			throw std::invalid_argument("invalid runmode");
+			break;
+		}
 	}
     
     wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps1, timesteps2, which_conv, steps_converged_required, w_relax, match_which_conv_relax);
@@ -154,5 +158,4 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         MPI_Barrier(MPI_COMM_WORLD);
         wfr_method -> write_error_log();
     }
-	MPI_Barrier(MPI_COMM_WORLD);
 }

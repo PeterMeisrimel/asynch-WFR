@@ -15,17 +15,17 @@ September 2018
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
+// Todo: fix memory leaks
+
 Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const char* class_name){
     _N = gridsize;
     other_init_done = false;
     _length = _N + 1;
-    //_u0 = new double[_length];
-
-	std::cout << gridsize << " " << a << " " << g << " " << class_name << std::endl;
 
     // this appears to change the paths to the current directory? without it, the import fails
     PyRun_SimpleString("import sys; import os");
     PyRun_SimpleString("sys.path.append(os.getcwd())");
+	PyRun_SimpleString("os.environ['OMP_NUM_THREADS'] = '1'");
 
     // import file, resp. python script
     PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_py"));
@@ -46,59 +46,47 @@ Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const
 }
 
 void Problem_heat_python::create_checkpoint(){
-	std::cout << "creating checkpoint " << std::endl;
 	PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("create_checkpoint"), NULL);
 }
 
 void Problem_heat_python::reset_to_checkpoint(){
-	std::cout << "resetting to checkpoint " << std::endl;
 	PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("reset"), NULL);
 }
 
 void Problem_heat_python::get_u0(double* u_out){
-	std::cout << "getting u0 CPP" << std::endl;
+	std::cout << "getting u0 CPP" << std::endl; 
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("get_u0"), NULL);
+	std::cout << "getting u0 CPP 000" << std::endl;
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
+	std::cout << "getting u0 CPP 001" << std::endl;
 	double * u_out_local;
-	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr)); // does this work or need manual copying?
+	std::cout << "getting u0 CPP 002" << std::endl;
+	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
+	std::cout << "getting u0 CPP 003" << std::endl;
 	for(int i = 0; i < _length; i++)
 		u_out[i] = u_out_local[i];
-	// outputting works it seems
-	std::cout << "output of getting u0 in CPP : " << std::endl;
-	for(int i = 0; i < _length; i++)
-		std::cout << u_out[i] << " ";
-	std::cout << std::endl;
+	std::cout << "getting u0 CPP 004" << std::endl;
 }
 
 void Problem_heat_python_D::do_step(double t, double dt, double *u_out, Waveform *WF_in){
 	PyObject * Pdt = PyFloat_FromDouble(dt);
-	std::cout << "doing step D, cpp   " << t << " " << dt << std::endl;
+
 	npy_intp dims[1]{_length_other};
     double *cInput = new double[_length_other];
 	WF_in->eval(t + dt, cInput);
-	std::cout << "D, checking cInput" << std::endl;
-	for(int i = 0; i < _length; i++)
-		std::cout << cInput[i] << " ";
-	std::cout << std::endl;
-	std::cout << "D, checking cInput done" << std::endl;
 
 	PyObject *pInput = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput));
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"),
                                                    Pdt, pInput, NULL);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
-	//double* py_out = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr)); // does this work or need manual copying?
 	double * u_out_local;
-	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr)); // does this work or need manual copying?  
+	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
 	for(int i = 0; i < _length; i++)
-		std::cout << u_out[i] << " ";
-	std::cout << std::endl;
-	//for (int i = 0; i < _length_other; i++)
-	//	u_out[i]  = py_out[i];
+		u_out[i] = u_out_local[i];
 }
 
 void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform *WF_in){
 	PyObject * Pdt = PyFloat_FromDouble(dt);
-	std::cout << "doing step N, cpp   " << t << " " << dt << std::endl;
 	npy_intp dims[1]{_length_other};
     double *cInput_flux_old = new double[_length_other];
     double *cInput_flux_new = new double[_length_other];
@@ -112,14 +100,10 @@ void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"),
                                                    Pdt, pInput_old, pInput_new, NULL);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
-	//double* py_out = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr)); // does this work or need manual copying?
 	double * u_out_local;
-	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr)); // does this work or need manual copying?  
+	u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
 	for(int i = 0; i < _length; i++)
-		std::cout << u_out[i] << " ";
-	std::cout << std::endl;
-	//for (int i = 0; i < _length_other; i++)
-	//	u_out[i]  = py_out[i];
+		u_out[i] = u_out_local[i];
 }
 
 #endif //PROBLEM_HEAT_PY_CPP_

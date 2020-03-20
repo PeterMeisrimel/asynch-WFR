@@ -9,6 +9,7 @@ Created on Tue Mar 10 22:31:31 2020
 
 import numpy as np
 import dolfin as dol
+from mpi4py import MPI
 from scipy.interpolate import interp1d
 
 """
@@ -27,6 +28,10 @@ class Custom_Expr(dol.UserExpression):
     
 class Problem_heat:
 	def __init__(self, gridsize, alpha, lam_diff):
+		print('init')
+		print(dol.MPI.size(dol.MPI.comm_world))
+		print('mpi stuff', MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+		print('init more')
 		dol.set_log_level(30) # supress non critical ouput
 		self.a = dol.Constant(alpha)
 		self.lam = dol.Constant(lam_diff)
@@ -34,7 +39,7 @@ class Problem_heat:
 		self.gridsize = gridsize
 		self.yy = np.linspace(0, 1, self.gridsize + 1) ## meshpoints for interface values
 
-		self.mesh = dol.UnitSquareMesh(gridsize, gridsize)
+		self.mesh = dol.UnitSquareMesh(MPI.COMM_SELF, gridsize, gridsize)
 		self.V = dol.FunctionSpace(self.mesh, "CG", 1)
 
 		self.u0 = dol.interpolate(dol.Expression("500*sin((x[0] + {})*M_PI/2)*sin(M_PI*x[1])".format(self.x_init), degree = 2), self.V)
@@ -81,19 +86,22 @@ class Problem_heat_D(Problem_heat):
 		self.ugamma = Custom_Expr()
 
 	def get_u0(self):
-		print('getting u0 PYTHON DIR', self.get_flux())
+#		print('getting u0 D, python')
 		return self.get_flux()
 		
 	def get_flux(self):
 		#dx = self.yy[1] - self.yy[0]
 		#return float(self.lam)*np.array([(self.usol(self.x_gamma, y) - self.usol(self.x_gamma  - dx, y))/dx for y in self.yy])
+#		print('getting fluxx')
 		flux_sol = dol.assemble(self.F_flux)
+#		print('assembled')        
 		flux_f = dol.Function(self.V)
+#		print('py 001')
 		flux_f.vector().set_local(flux_sol)
+#		print('py 002')
 		return -np.array([flux_f(self.x_gamma, y) for y in self.yy])
 
 	def do_step(self, dt, ug):
-		print('doing python step, D', dt, ug, type(ug), ug.dtype)
 		self.dt.assign(dt)
 		self.ugamma.update_vals(self.yy, ug)
 
@@ -101,7 +109,6 @@ class Problem_heat_D(Problem_heat):
 		dol.solve(self.lhs == self.rhs, self.usol, [self.bc_D, bc_gamma])
 		flux = self.get_flux()
 		self.uold.assign(self.usol)
-		print('incoming!', len(flux))
 		return flux      
     
 class Problem_heat_N(Problem_heat):
@@ -115,18 +122,16 @@ class Problem_heat_N(Problem_heat):
 		super(Problem_heat_N, self).__init__(gridsize, alpha, lam_diff)
 
 	def get_u0(self):
-		print('getting u0 PYTHON NEU', np.array([self.uold(self.x_gamma, y) for y in self.yy]))
+		print('getting u0 N, python')
 		return np.array([self.uold(self.x_gamma, y) for y in self.yy])
 		
 	def do_step(self, dt, flux_old, flux_new):
-		print('doing python step, N', dt, flux_old, flux_new, type(flux_old), type(flux_new))
 		self.dt.assign(dt)
 		self.f_old.update_vals(self.yy, flux_old)
 		self.f_new.update_vals(self.yy, flux_new)
 
 		dol.solve(self.lhs == self.rhs, self.usol, self.bc_D)
 		self.uold.assign(self.usol)
-		print('incoming', len(np.array([self.usol(self.x_gamma, y) for y in self.yy])))
 		return np.array([self.usol(self.x_gamma, y) for y in self.yy])
 
 if __name__ == '__main__':

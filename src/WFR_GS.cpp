@@ -80,7 +80,6 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	runtime = MPI_Wtime(); // runtime measurement start
-	std::cout << "starting macrostep loop" << std::endl;
     for(int i = 0; i < steps_macro; i++){
         prob_self->create_checkpoint();
         prob_other->create_checkpoint();

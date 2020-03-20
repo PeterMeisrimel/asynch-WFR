@@ -131,8 +131,6 @@ bool WFR::check_convergence(double WF_TOL){
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
                 up_other = WF_other->get_err_norm_sq_last(WF_other_last);
                 update   = sqrt(up_self + up_other);
-
-                //std::cout << ID_SELF << " " << up_self << " " << up_other << std::endl; 
                 break;
             }
             case 1:{ // weighted scale norm

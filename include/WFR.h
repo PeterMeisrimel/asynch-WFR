@@ -20,7 +20,6 @@ const int TAG_MISC = 5;
 #include "problem.h"
 #include <iostream>
 #include "mpi.h"
-/// \todo implement relaxation, both standard SOR and CSOR. CSOR should come via additional function from problem class
 
 class WFR{
 protected:

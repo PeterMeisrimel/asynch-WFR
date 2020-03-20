@@ -11,18 +11,20 @@ March 2020
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // disables from warning from outdated API
 #define PY_ARRAY_UNIQUE_SYMBOL cool_ARRAY_API
 #include "numpy/arrayobject.h"
+#include "unistd.h"
 
 int main(int argc, char *argv[]){
 	MPI_Init(&argc, &argv);
 	//wchar_t *program = Py_DecodeLocale(argv[0], NULL);
 	//Py_SetProgramName(program);  /* optional but recommended */
-	Py_Initialize();
-	import_array(); // numpy stuff
 
 	int np, ID_SELF, ID_OTHER;
     MPI_Comm_rank(MPI_COMM_WORLD, &ID_SELF);
     MPI_Comm_size(MPI_COMM_WORLD, &np);
 	ID_OTHER = (ID_SELF + 1)%np;
+
+	Py_Initialize();
+	import_array(); // numpy stuff
 
     Problem * prob1, * prob2;
     // problem specific default parameters
@@ -45,18 +47,25 @@ int main(int argc, char *argv[]){
 
     // IMPORTANT TO INITIALIZE PROBLEMS LIKE THIS
     // ensures that for parallel methods each processor initializes only one problem and for serial ones, both are initialized
-    if (ID_SELF == 0)
+    if (ID_SELF == 0){
         prob1 = new Problem_heat_python_D(gridsize1, alpha1, lambda1);
-    if (ID_OTHER == 0)
+	}
+    if (ID_OTHER == 0){
         prob2 = new Problem_heat_python_N(gridsize2, alpha2, lambda2);
+	}
+	std::cout << "initialization done " << ID_SELF << std::endl;
 
-	std::cout << " starting run " << std::endl;
     setup_and_run_WFR(prob1, prob2, which_conv, t_end, timesteps, argc, argv);
-	std::cout << " running done " << std::endl;
+
+	std::cout << "running done " << ID_SELF << std::endl;
 
 	Py_Finalize();
-	std::cout << " python finalized " << std::endl;
-	MPI_Finalize();
-	//std::cout << " MPI finalized " << ID_SELF << std::endl;
-	return 0;
+
+	std::cout << "py finalized " << ID_SELF << std::endl;
+	//return MPI_Finalize();
+	/*
+	TODO: really should call MPI_Finalize here, but this causes some error that I cannot resolve right now.
+	Source for that error appears to the Expression
+	*/
+	return 0; 
 }
