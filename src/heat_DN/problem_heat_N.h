@@ -20,15 +20,15 @@ September 2018
 class Problem_heat_N : public Problem_heat{
 private:
     std::shared_ptr<Boundaries_N> _dirichlet_boundary;
-  
+      
     std::shared_ptr<InterpolatedExpression> _fluxx_old;
     std::shared_ptr<InterpolatedExpression> _fluxx_new;
 public:
     // gridsize, alpha, lambda
     Problem_heat_N(int, double, double, int = 0);
-
+    
     void init_other(int);
-
+    
     // t, dt, unew (out), WF
     void do_step(double, double, double *, Waveform *);
 };

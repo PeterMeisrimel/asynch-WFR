@@ -1,12 +1,19 @@
-Current status:
+SETUP: 
 
-It works, barely. Always appears to finish on error messages due to something in MPI_Finalize, which I could not figure out thus far.
+Open problem_heat_python.cpp
+Change the line "PyRun_SimpleString("sys.path.append('/home/peter/asynch-WFR/src/heat_DN_python/')");" to correctly represent wherever you saved this
 
-1. The root cause of the error messages appears to be the dolfin expression that is used for the initial value. Possibly some error because it goes back to C in some way to evaluate this?
-Replacing this by a UserExpression didn't work out so far
 
-2. Despite the fact that Python is called from a single processor, FEniCs somehow registers that there are multiple processors and tries to make use of these. One can restrict the grid to MPI_COMM_SELF, i.e. to not have a distributed grid, and this will enable compuations and give reasonable results. However, this does NOT fix the underlying issue that Python is called with multiple processors in the first place. This might also be part of the reason why the initialization appears to be very slow (or it is just importing dolfin).
 
-Either way, the proof of concept for calling Python FEniCs from C++ works and we will not try to fix this mess at this points.
 
-Good luck if anyone tries to clean up this mess in the future.
+Current status: It works, somewhat.
+
+Always appears to finish on error messages due to something in MPI_Finalize, which I could not figure out thus far. See also minimal working example (folder: min_ex) that can reproduce this problem. The root cause appears to be the dolfin expression. Replacing it by a UserExpression does not solve the problem. Possibly, the issue is that it goes back to C in some way to evaluate this? 
+
+See also: https://fenicsproject.discourse.group/t/expression-class-causing-trouble-for-python-embedded-in-c/2851
+
+This can be "fixed" skipping the MPI_Finalize and running with -quiet to hide the resulting error message at the end. However, this will also hide any legit MPI error messages.
+
+Maybe this stuff will be fixed in future FEniCs versions?
+
+This mostly serves as proof of concept.

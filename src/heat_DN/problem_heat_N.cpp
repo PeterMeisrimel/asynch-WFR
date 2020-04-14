@@ -6,14 +6,15 @@ September 2018
 #include "problem_heat_N.h"
 #include "problem_heat.h"
 
-Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, int which) : Problem_heat(gridsize, a, g, 1.0, 0.0, which){
+Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, int which) : Problem_heat(gridsize, a, g, 1.0, which){
     other_init_done = false;
-    _length = _N + 1;
     _u0 = new double[_length];
 
-    for(int i = 0; i < _length; i++)
-        _u0[i] = (*_uold)(0, i*_dx);
-
+    for(int i = 1; i < _length - 1; i++)
+        _u0[i] = (*_uold)(0., i*_dx);
+    _u0[0] = 0.; // manually enforce boundaries
+    _u0[_length - 1] = 0.;
+    
     _dirichlet_boundary_val = std::make_shared<dolfin::Constant>(0.0);
     _dirichlet_boundary     = std::make_shared<Boundaries_N>();
     _BC = new dolfin::DirichletBC(_V, _dirichlet_boundary_val, _dirichlet_boundary);
@@ -39,15 +40,10 @@ void Problem_heat_N::init_other(int len_other){
 
 void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_in){
     WF_in -> eval(t, _uother_old);
-    // force boundary points of flux to zero, coefficients and sign have been set accordingly in heat.ufl
-	_uother_old[0] = 0;
-	_uother_old[_length_other-1] = 0;
     _fluxx_old -> set_vals(get_uother_old_p());
     _rhs_fold -> interpolate(*_fluxx_old);
 
     WF_in -> eval(t + dt, _uother_new);
-	_uother_new[0] = 0;
-	_uother_new[_length_other-1] = 0;
     _fluxx_new -> set_vals(get_uother_new_p());
     _rhs_fnew -> interpolate(*_fluxx_new);
 
@@ -58,6 +54,8 @@ void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_i
     *_uold->vector() = *(_unew -> vector());
 
     // evalute solution and return boundary values
-    for(int i = 0; i < _length; i++)
+    for(int i = 1; i < _length - 1; i++)
         unew[i] = (*_uold)(0, i*_dx);
+    unew[0] = 0.; // manually enforce boundaries
+    unew[_length - 1] = 0.;
 }

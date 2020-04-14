@@ -112,7 +112,7 @@ def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times,
             out_f = output_dir + '/' + str(run_names[j]) + '_' + str(tol) + '.txt'
             out_files['files'].append(out_f)
             
-            run_string = (f'mpirun -np {num_proc} ../src/{folder}/{exe} -runmode {r} {string_full} >> {out_f}\n')
+            run_string = (f'mpirun -np {num_proc} -quiet ../src/{folder}/{exe} -runmode {r} {string_full} >> {out_f}\n')
             #print(run_string)
             print(f'running {r} ({run_names[j]}) for tolerance of {tol}')
             for _ in range(times):
