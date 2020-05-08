@@ -11,10 +11,7 @@ import numpy as np
 import dolfin as dol
 from scipy.interpolate import interp1d
 
-"""
-Careful with indentations here, using the standard ones from Spyder might break something for the C++ code
-"""
-
+## Class to make discrete data accessible to the weak forms, via linear interpolation
 class Custom_Expr(dol.UserExpression):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -24,7 +21,8 @@ class Custom_Expr(dol.UserExpression):
         value[0] = self.interpolated_data(x[1])
     def value_shape(self):
         return ()
-    
+
+## standard heat equation: alpha u_t + lamda_diff \Delta u = 0
 class Problem_heat:
     def __init__(self, gridsize, alpha, lam_diff):
         dol.set_log_level(30) # supress non critical ouput
@@ -34,9 +32,9 @@ class Problem_heat:
         self.yy = np.linspace(0, 1, gridsize + 2) ## meshpoints for interface values
         
         self.mesh = dol.UnitSquareMesh(dol.MPI.comm_self, gridsize + 1, gridsize + 1)
-        
         self.V = dol.FunctionSpace(self.mesh, "CG", 1)
 
+        # initial conditions, fulfills Dirichlet boundaries
         self.u0 = dol.interpolate(dol.Expression("500*sin((x[0] + {})*M_PI/2)*sin(M_PI*x[1])".format(self.x_init), degree = 2), self.V)
 
         self.unew = dol.TrialFunction(self.V)
@@ -46,16 +44,19 @@ class Problem_heat:
         self.usol = dol.Function(self.V)
         self.usol.interpolate(self.u0)
 
+        ## weak form, Crank-Nicolson method
         self.F = (self.a*(self.unew - self.uold)*self.vtest*dol.dx
                   + 0.5*self.dt*self.lam*dol.dot(dol.grad(self.uold + self.unew), dol.grad(self.vtest))*dol.dx
-                  + 0.5*self.dt*(self.f_old + self.f_new)*self.vtest*dol.ds)
+                  + self.dt*self.f_new*self.vtest*dol.ds)
         self.lhs = dol.lhs(self.F)
         self.rhs = dol.rhs(self.F)
 
+        ## marking zero-boundaries
         def boundary_zero(x, on_boundary):
             return on_boundary and (dol.near(x[0], self.x_not_gamma) or dol.near(x[1], 0) or dol.near(x[1], 1))
         self.bc_D = dol.DirichletBC(self.V, dol.Constant(0.), boundary_zero)
 
+        ## marking interface
         def boundary_gamma(x, on_boundary):
             return on_boundary and dol.near(x[0], self.x_gamma)
         self.bc_gamma = boundary_gamma
@@ -75,20 +76,19 @@ class Problem_heat_D(Problem_heat):
     def __init__(self, gridsize, alpha, lam_diff):
         self.x_init = 0
         self.x_gamma, self.x_not_gamma = 1., 0.
-        self.f_old = dol.Constant(0.)
         self.f_new = dol.Constant(0.)
         super(Problem_heat_D, self).__init__(gridsize, alpha, lam_diff)
         
+        ## weak form for flux computation, should ideally only be computed on the interface nodes, not sure how to make that happen in fenics though
         self.F_flux = (self.a*(self.usol - self.uold)/self.dt*self.vtest*dol.dx
-                       + self.lam*dol.dot(dol.grad(self.usol), dol.grad(self.vtest))*dol.dx)
-        self.ugamma = Custom_Expr()
+                       + 0.5*self.lam*dol.dot(dol.grad(self.usol + self.uold), dol.grad(self.vtest))*dol.dx)
+        self.ugamma = Custom_Expr() ## for discrete Dirichlet boundary data
 
     def get_u0(self):
         return self.get_flux(1)
 		
+    ## flux computation
     def get_flux(self, dt):
-#        dx = self.yy[1] - self.yy[0]
-#        return float(self.lam)*np.array([0.] + [(self.usol(self.x_gamma, y) - self.usol(self.x_gamma  - dx, y))/dx for y in self.yy[1:-1]] + [0.])
         self.dt.assign(dt)
         flux_sol = dol.assemble(self.F_flux)
         flux_f = dol.Function(self.V)
@@ -97,9 +97,11 @@ class Problem_heat_D(Problem_heat):
 
     def do_step(self, dt, ug):
         self.dt.assign(dt)
+        
+        ## set boundary data
         self.ugamma.update_vals(self.yy, ug)
-
         bc_gamma = dol.DirichletBC(self.V, self.ugamma, self.bc_gamma)
+        
         dol.solve(self.lhs == self.rhs, self.usol, [self.bc_D, bc_gamma])
         flux = self.get_flux(dt)
         self.uold.assign(self.usol)
@@ -111,17 +113,16 @@ class Problem_heat_N(Problem_heat):
         self.x_init = 1
         self.x_gamma, self.x_not_gamma = 0, 1
 
-        self.f_old = Custom_Expr()
         self.f_new = Custom_Expr()
         super(Problem_heat_N, self).__init__(gridsize, alpha, lam_diff)
 
     def get_u0(self):
         return np.array([0.] + [self.uold(self.x_gamma, y) for y in self.yy[1:-1]] + [0.])
 		
-    def do_step(self, dt, flux_old, flux_new):
+    def do_step(self, dt, flux):
         self.dt.assign(dt)
-        self.f_old.update_vals(self.yy, flux_old)
-        self.f_new.update_vals(self.yy, flux_new)
+        ## update fluxes
+        self.f_new.update_vals(self.yy, flux)
 
         dol.solve(self.lhs == self.rhs, self.usol, self.bc_D)
         self.uold.assign(self.usol)
@@ -154,7 +155,7 @@ if __name__ == '__main__':
             f.append(pD.do_step(dt, ug[i+1]))
         tmp = np.copy(ug[-1])
         for i in range(N):
-            ug[i+1] = pN.do_step(dt, f[i], f[i+1])
+            ug[i+1] = pN.do_step(dt, f[i+1])
         update = np.linalg.norm(ug[-1] - tmp, 2)
         print(k, ' update = ', update)
         if update < 1e-8:

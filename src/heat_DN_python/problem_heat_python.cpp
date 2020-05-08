@@ -81,16 +81,12 @@ void Problem_heat_python_D::do_step(double t, double dt, double *u_out, Waveform
 void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform *WF_in){
     PyObject * Pdt = PyFloat_FromDouble(dt);
     npy_intp dims[1]{_length_other};
-    double *cInput_flux_old = new double[_length_other];
     double *cInput_flux_new = new double[_length_other];
     
-    WF_in->eval(t, cInput_flux_old);
     WF_in->eval(t + dt, cInput_flux_new);
-    
-    PyObject *pInput_old = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput_flux_old));
     PyObject *pInput_new = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput_flux_new));
     
-    PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput_old, pInput_new, NULL);
+    PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput_new, NULL);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
     double * u_out_local;
     u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));

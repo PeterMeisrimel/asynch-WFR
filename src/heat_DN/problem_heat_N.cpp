@@ -21,16 +21,13 @@ Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, int which) : Pr
 
     _bcs.push_back(_BC);
 
-    _rhs_fold = std::make_shared<dolfin::Function>(_V);
     _rhs_fnew = std::make_shared<dolfin::Function>(_V);
-    _L -> fold = _rhs_fold;
     _L -> fnew = _rhs_fnew;
 }
 
 void Problem_heat_N::init_other(int len_other){
     if(not other_init_done){
-        _fluxx_old = std::make_shared<InterpolatedExpression>(len_other);
-        _fluxx_new = std::make_shared<InterpolatedExpression>(len_other);
+        _fluxx = std::make_shared<InterpolatedExpression>(len_other);
         _length_other = len_other;
         _uother_old = new double[len_other];
         _uother_new = new double[len_other];
@@ -39,13 +36,9 @@ void Problem_heat_N::init_other(int len_other){
 }
 
 void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_in){
-    WF_in -> eval(t, _uother_old);
-    _fluxx_old -> set_vals(get_uother_old_p());
-    _rhs_fold -> interpolate(*_fluxx_old);
-
     WF_in -> eval(t + dt, _uother_new);
-    _fluxx_new -> set_vals(get_uother_new_p());
-    _rhs_fnew -> interpolate(*_fluxx_new);
+    _fluxx -> set_vals(get_uother_new_p());
+    _rhs_fnew -> interpolate(*_fluxx);
 
 	_L -> u0 = _uold;
 	*_dt = dt;

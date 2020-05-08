@@ -16,7 +16,7 @@ import pylab as pl
 import datetime
 pl.close('all')
 
-tol = 1e-6
+tol = 1e-10
 gridsize = 16
 name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'

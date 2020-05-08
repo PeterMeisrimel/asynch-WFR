@@ -17,12 +17,9 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, int which) : Pr
     
     _bcs.push_back(_BC);
 
-    _rhs_fold = std::make_shared<dolfin::Function>(_V);
     _rhs_fnew = std::make_shared<dolfin::Function>(_V);
     dolfin::Constant const_0(0.0);
-    _rhs_fold -> interpolate(const_0);
     _rhs_fnew -> interpolate(const_0);
-    _L -> fold = _rhs_fold;
     _L -> fnew = _rhs_fnew;
     
     _unew->vector() = _uold->vector();

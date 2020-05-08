@@ -33,7 +33,6 @@ protected:
     std::shared_ptr<dolfin::Function> _ucheckpoint;
     //Function * _unew;
     std::shared_ptr<dolfin::Function> _unew;
-    std::shared_ptr<dolfin::Function> _rhs_fold;
     std::shared_ptr<dolfin::Function> _rhs_fnew;
     
     heat::BilinearForm * _a;
