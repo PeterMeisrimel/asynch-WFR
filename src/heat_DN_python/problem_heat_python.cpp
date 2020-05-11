@@ -6,16 +6,14 @@ September 2018
 #ifndef PROBLEM_HEAT_PY_CPP_
 #define PROBLEM_HEAT_PY_CPP_
 
+#include "Python.h"
 #include "problem_heat_python.h"
 #include "iostream"
 #include "cassert"
-#include "Python.h"
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL cool_ARRAY_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
-
-// Todo: fix memory leaks
 
 Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const char* class_name){
     other_init_done = false;
@@ -56,42 +54,60 @@ void Problem_heat_python::reset_to_checkpoint(){
 
 void Problem_heat_python::get_u0(double* u_out){
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("get_u0"), NULL);
+    Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
+    Py_XINCREF(pOutput_arr);
     double * u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
     for(int i = 0; i < _length; i++)
         u_out[i] = u_out_local[i];
+    
+    Py_XDECREF(pOutput);
+    Py_XDECREF(pOutput_arr);
 }
 
 void Problem_heat_python_D::do_step(double t, double dt, double *u_out, Waveform *WF_in){
-    PyObject * Pdt = PyFloat_FromDouble(dt);
+    Pdt = PyFloat_FromDouble(dt);
     
     npy_intp dims[1]{_length_other};
     double *cInput = new double[_length_other];
     WF_in->eval(t + dt, cInput);
     
     PyObject *pInput = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput));
+    Py_XINCREF(pInput);
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput, NULL);
+    Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
+    Py_XINCREF(pOutput_arr);
     double * u_out_local;
     u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
     for(int i = 0; i < _length; i++)
         u_out[i] = u_out_local[i];
+        
+    Py_XDECREF(pInput);
+    Py_XDECREF(pOutput);
+    Py_XDECREF(pOutput_arr);
 }
 
 void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform *WF_in){
-    PyObject * Pdt = PyFloat_FromDouble(dt);
+    Pdt = PyFloat_FromDouble(dt);
     npy_intp dims[1]{_length_other};
     double *cInput_flux_new = new double[_length_other];
     
     WF_in->eval(t + dt, cInput_flux_new);
     PyObject *pInput_new = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput_flux_new));
-    
+    Py_XINCREF(pInput_new);
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput_new, NULL);
+    Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
+    Py_XINCREF(pOutput_arr);
     double * u_out_local;
     u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
     for(int i = 0; i < _length; i++)
         u_out[i] = u_out_local[i];
+    
+    Py_XDECREF(pInput_new);
+    Py_XDECREF(pOutput);
+    Py_XDECREF(pOutput_arr);
 }
 
 #endif //PROBLEM_HEAT_PY_CPP_

@@ -6,16 +6,16 @@ March 2020
 #ifndef PROBLEM_HEAT_PY_H_
 #define PROBLEM_HEAT_PY_H_
 
+#include "Python.h"
 #include "waveform.h"
 #include "problem.h"
-#include "Python.h"
 #include "iostream"
 //#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // disables from warning from outdated API
 //#include "numpy/arrayobject.h"
 
 class Problem_heat_python : public Problem{
 protected:
-    PyObject *pClass_obj;
+    PyObject *pClass_obj, *Pdt;
 public:
     Problem_heat_python(int, double, double, const char*);
     void create_checkpoint();

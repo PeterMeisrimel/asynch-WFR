@@ -3,11 +3,16 @@ Authors: Peter Meisrimel
 March 2020
 */
 
+#include "Python.h"
+/*
+https://docs.python.org/3/extending/extending.html: 
+"Since Python may define some pre-processor definitions which affect the standard headers on some systems, 
+you must include Python.h before any standard headers are included"
+*/
 #include "utils.h"
 #include "input_reader_heat.h"
 #include "problem_heat_python.h"
 #include "mpi.h"
-#include "Python.h"
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // disables from warning from outdated API
 #define PY_ARRAY_UNIQUE_SYMBOL cool_ARRAY_API
 #include "numpy/arrayobject.h"
