@@ -15,7 +15,8 @@ protected:
     int _length, _length_other; // corresponding lenghtes of the problems
     bool other_init_done; // marker that init_other has been called
 public:
-    int get_length(){ return _length;}; // 
+    int get_length(){ return _length;}; // output size of problem
+    
     // u (inout)
     virtual void get_u0(double *uout){
         for(int i = 0; i < _length; i++)
@@ -30,6 +31,11 @@ public:
             _uother = new double[len_other];
             other_init_done = true;
         }
+    };
+    
+    // to allow for possible factor to be multiplied on the norm, e.g. for discrete L2 norms
+    virtual double get_norm_factor(){ 
+        return 1;
     };
 
     // t, dt, unew (out), WF

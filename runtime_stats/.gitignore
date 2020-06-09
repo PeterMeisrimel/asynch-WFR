@@ -6,3 +6,4 @@ run_toy_impl
 __pycache__
 verify_order_*
 run_all_test.sh
+*.pyc

@@ -98,7 +98,7 @@ void WFR::get_relative_tol(){
         case 0:{
             double val0 = WF_self ->get_norm_sq_last();
             double val1 = WF_other->get_norm_sq_last();
-            rel_update_fac = sqrt(val0 + val1);
+            rel_update_fac = sqrt(val0 + val1)*norm_factor;
             break;
         }
         case 1:{
@@ -106,19 +106,20 @@ void WFR::get_relative_tol(){
             double w_other = float(DIM_OTHER) / float(DIM_SELF + DIM_OTHER);
             double val0 = WF_self ->get_norm_sq_last();
             double val1 = WF_other->get_norm_sq_last();
-            rel_update_fac = sqrt(w_self*val0 + w_other*val1);
+            rel_update_fac = sqrt(w_self*val0 + w_other*val1)*norm_factor;
             break;
         }
         default:{
             double val;
             if ((conv_which == -1) || (conv_which == -2)){
                 val = WF_conv_check -> get_norm_sq_last();
-                rel_update_fac = sqrt(val);
+                rel_update_fac = sqrt(val)*norm_factor;
                 break;
             }else
                 throw std::invalid_argument("No method to check for convergence implemented for this input");
         }
     }
+//    std::cout << "relative update factor " << rel_update_fac << std::endl;
 }
 
 bool WFR::check_convergence(double WF_TOL){
@@ -130,7 +131,7 @@ bool WFR::check_convergence(double WF_TOL){
             case 0:{ // usual 2-norm
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
                 up_other = WF_other->get_err_norm_sq_last(WF_other_last);
-                update   = sqrt(up_self + up_other);
+                update   = sqrt(up_self + up_other)*norm_factor;
                 break;
             }
             case 1:{ // weighted scale norm
@@ -138,19 +139,19 @@ bool WFR::check_convergence(double WF_TOL){
                 double w_other = float(DIM_OTHER) / float(DIM_SELF + DIM_OTHER);
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
                 up_other = WF_other->get_err_norm_sq_last(WF_other_last);
-                update   = sqrt(w_self*up_self + w_other*up_other);
+                update   = sqrt(w_self*up_self + w_other*up_other)*norm_factor;
                 break;
             }
             default:{
                 if ((conv_which == -1) || (conv_which == -2)){
                     up_self  = WF_conv_check -> get_err_norm_sq_last(WF_conv_check_last);
-                    update = sqrt(up_self);
+                    update = sqrt(up_self)*norm_factor;
                     break;
                 }else
                     throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
-//        std::cout << "update " << update << std::endl;
+//        std::cout << rel_update_fac << " update " << update << std::endl;
         if (update/rel_update_fac < WF_TOL)
             return true;
     }// END ELSE
@@ -161,11 +162,11 @@ void WFR_serial::write_results(){
     sol_size = prob_self->get_length();
     sol = new double[sol_size];
     WF_self -> get_last(sol);
-
+    
     sol_other_size = prob_other->get_length();
     sol_other = new double[sol_other_size];
     WF_other -> get_last(sol_other);
-
+    
     runtime_self = get_runtime();
     runtime_other = runtime_self;
     
@@ -195,14 +196,14 @@ void WFR_parallel::write_results(){
 
 void WFR::write_results(){
     iters = get_WF_iters();
-	if(ID_SELF == 0){
+    if(ID_SELF == 0){
         std::cout << std::setprecision(14) << ID_SELF << " " << iters << " " << runtime_self << " ";
-	    for(int i = 0; i < sol_size; i++)
+        for(int i = 0; i < sol_size; i++)
             std::cout << std::setprecision(14) << sol[i] << " ";
         std::cout << std::endl;
-
+        
         std::cout << std::setprecision(14) << ID_OTHER << " " << iters << " " << runtime_other << " ";
-	    for(int i = 0; i < sol_other_size; i++)
+        for(int i = 0; i < sol_other_size; i++)
             std::cout << std::setprecision(14) << sol_other[i] << " ";
         std::cout << std::endl;
     }
@@ -261,19 +262,17 @@ void WFR_parallel::write_error_log(){
 }
 
 void WFR::write_error_log(){
-    if (log_errors){
-	    if(ID_SELF == 0){
-            for (int j = 0; j < err_log_counter; j++){
-                std::cout << std::setprecision(14) << ID_SELF << " " << j << " ";
-	            for(int i = 0; i < DIM_SELF; i++)
-                    std::cout << std::setprecision(14) << error_log[i + j*DIM_SELF] << " ";
-                std::cout << std::endl;
-
-                std::cout << std::setprecision(14) << ID_OTHER << " " << j << " ";
-	            for(int i = 0; i < DIM_OTHER; i++)
-                    std::cout << std::setprecision(14) << error_other_log[i + j*DIM_OTHER] << " ";
-                std::cout << std::endl;
-            }
+    if (log_errors and (ID_SELF == 0)){
+        for (int j = 0; j < err_log_counter; j++){
+            std::cout << std::setprecision(14) << ID_SELF << " " << j << " ";
+            for(int i = 0; i < DIM_SELF; i++)
+                std::cout << std::setprecision(14) << error_log[i + j*DIM_SELF] << " ";
+            std::cout << std::endl;
+            
+            std::cout << std::setprecision(14) << ID_OTHER << " " << j << " ";
+            for(int i = 0; i < DIM_OTHER; i++)
+                std::cout << std::setprecision(14) << error_other_log[i + j*DIM_OTHER] << " ";
+            std::cout << std::endl;
         }
     }
 }

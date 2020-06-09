@@ -26,7 +26,7 @@ private:
       
     std::shared_ptr<InterpolatedExpression> _interface_vals;
     
-    void get_flux(double, double*);
+    void get_flux(double*);
     
     heat_flux::LinearForm * _heat_F;
     std::shared_ptr<dolfin::Function> _flux_function;

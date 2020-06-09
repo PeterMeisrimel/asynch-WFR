@@ -61,7 +61,7 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
     if (RELAX){
         relax_aux_vec = new double[DIM_SELF];
     }
-
+    
     // initialize other waveform
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
@@ -76,10 +76,11 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
 
     double window_length = _t_end/steps_macro;
 
+    norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
-	MPI_Barrier(MPI_COMM_WORLD);
-	runtime = MPI_Wtime(); // runtime measurement start
+    MPI_Barrier(MPI_COMM_WORLD);
+    runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){
         prob_self->create_checkpoint();
         prob_other->create_checkpoint();
@@ -96,6 +97,7 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
             WF_self->init_by_last();
         }
 
+        
         get_relative_tol(); // get tolerance for relative update termination check
       
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);

@@ -92,6 +92,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
+    norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -370,6 +371,7 @@ void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
+    norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
     
     MPI_Sendrecv(&w_relax_gs_other, 1, MPI_DOUBLE, ID_OTHER, TAG_MISC,

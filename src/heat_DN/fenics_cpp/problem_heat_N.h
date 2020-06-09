@@ -20,8 +20,8 @@ September 2018
 class Problem_heat_N : public Problem_heat{
 private:
     std::shared_ptr<Boundaries_N> _dirichlet_boundary;
-      
-    std::shared_ptr<InterpolatedExpression> _fluxx;
+    
+    std::shared_ptr<InterpolatedExpression> _fluxx;  
 public:
     // gridsize, alpha, lambda
     Problem_heat_N(int, double, double, int = 0);

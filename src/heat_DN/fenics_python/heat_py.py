@@ -30,6 +30,7 @@ class Problem_heat:
         self.lam = dol.Constant(lam_diff)
         self.dt = dol.Constant(1.)
         self.yy = np.linspace(0, 1, gridsize + 2) ## meshpoints for interface values
+        self.dx = 1./(gridsize + 1)
         
         self.mesh = dol.UnitSquareMesh(dol.MPI.comm_self, gridsize + 1, gridsize + 1)
         self.V = dol.FunctionSpace(self.mesh, "CG", 1)
@@ -83,6 +84,9 @@ class Problem_heat_D(Problem_heat):
         self.F_flux = (self.a*(self.usol - self.uold)/self.dt*self.vtest*dol.dx
                        + 0.5*self.lam*dol.dot(dol.grad(self.usol + self.uold), dol.grad(self.vtest))*dol.dx)
         self.ugamma = Custom_Expr() ## for discrete Dirichlet boundary data
+        
+        self.nn = dol.FacetNormal(self.mesh)
+        self.F_fluxx = (0.5*self.lam*dol.dot(dol.grad(self.usol + self.uold), self.nn)*self.vtest*dol.ds)
 
     def get_u0(self):
         return self.get_flux(1)
@@ -91,6 +95,7 @@ class Problem_heat_D(Problem_heat):
     def get_flux(self, dt):
         self.dt.assign(dt)
         flux_sol = dol.assemble(self.F_flux)
+#        flux_sol = dol.assemble(self.F_fluxx)
         flux_f = dol.Function(self.V)
         flux_f.vector().set_local(flux_sol)
         return -np.array([0.] + [flux_f(self.x_gamma, y) for y in self.yy[1:-1]] + [0.]) # manually enfore zero fluxes at upper and lower bound
@@ -130,11 +135,11 @@ class Problem_heat_N(Problem_heat):
 
 if __name__ == '__main__':
     print('running python mode, normally')
-    p = {'alpha': 1., 'lam_diff': 0.01, 'gridsize': 32}
+    p = {'alpha': 1., 'lam_diff': 0.01, 'gridsize': 10}
     tf = 1
-    N = 100
+    N = 20
     dt = tf/N
-    maxiter = 40
+    maxiter = 4
 
     pD = Problem_heat_D(**p)
     pN = Problem_heat_N(**p)

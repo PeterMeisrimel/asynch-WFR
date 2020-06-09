@@ -17,9 +17,16 @@ find_package(DOLFIN REQUIRED)
 
 include_directories(../../include)
 include_directories(../)
+######################################
+# change to your python path and version
+######################################
+include_directories(/usr/include/python3.6m/)
 
 set(SOURCES_BASE ../waveform.cpp ../waveform_locking.cpp ../WFR_GS.cpp ../WFR_JAC.cpp ../WFR_NEW.cpp ../utils.cpp ../WFR.cpp)
-set(SOURCES_LOCAL problem_heat.cpp problem_heat_D.cpp problem_heat_N.cpp input_reader_heat.cpp)
+set(SOURCES_LOCAL input_reader_heat.cpp)
+set(SOURCES_FENICS_CPP fenics_cpp/problem_heat.cpp fenics_cpp/problem_heat_D.cpp fenics_cpp/problem_heat_N.cpp)
+set(SOURCES_FENICS_PYTHON fenics_python/problem_heat_python.cpp)
+set(SOURCES_DUNE_PYTHON dune_python/problem_heat_dune.cpp)
  
 include(${DOLFIN_USE_FILE})
 
@@ -38,8 +45,11 @@ if (HAVE_NO_MULTLINE)
 endif()
 
 # Executable
-add_executable(${PROJECT_NAME} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL})
-target_link_libraries(${PROJECT_NAME} dolfin)
+add_executable(${PROJECT_NAME} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL} ${SOURCES_FENICS_CPP} ${SOURCES_FENICS_PYTHON} ${SOURCES_DUNE_PYTHON})
+######################################
+# make sure this uses the correct python version, see above
+######################################
+target_link_libraries(${PROJECT_NAME} dolfin python3.6m)
 
 # Test targets
 set(test_parameters -np 2 ${MPIEXEC_PARAMS} "./${PROJECT_NAME}")

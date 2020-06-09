@@ -21,7 +21,9 @@ Problem_heat_N::Problem_heat_N(int gridsize, double a, double g, int which) : Pr
 
     _bcs.push_back(_BC);
 
+    _rhs_fold = std::make_shared<dolfin::Function>(_V);
     _rhs_fnew = std::make_shared<dolfin::Function>(_V);
+    _L -> fold = _rhs_fold;
     _L -> fnew = _rhs_fnew;
 }
 
@@ -35,20 +37,22 @@ void Problem_heat_N::init_other(int len_other){
     }
 }
 
-void Problem_heat_N::do_step(double t, double dt, double * unew, Waveform * WF_in){
+void Problem_heat_N::do_step(double t, double dt, double * u_output, Waveform * WF_in){
+    *_dt = dt;
+    WF_in -> eval(t, _uother_old);
+    _fluxx -> set_vals(get_uother_old_p());
+    _rhs_fold -> interpolate(*_fluxx);
+    
     WF_in -> eval(t + dt, _uother_new);
     _fluxx -> set_vals(get_uother_new_p());
     _rhs_fnew -> interpolate(*_fluxx);
 
-	_L -> u0 = _uold;
-	*_dt = dt;
 	dolfin::solve(*_a == *_L, *_unew, _bcs);
-
     *_uold->vector() = *(_unew -> vector());
 
     // evalute solution and return boundary values
     for(int i = 1; i < _length - 1; i++)
-        unew[i] = (*_uold)(0, i*_dx);
-    unew[0] = 0.; // manually enforce boundaries
-    unew[_length - 1] = 0.;
+        u_output[i] = (*_uold)(0, i*_dx);
+    u_output[0] = 0.; // manually enforce boundaries
+    u_output[_length - 1] = 0.;
 }

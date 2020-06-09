@@ -1,13 +1,13 @@
 /*
 Authors: Peter Meisrimel
-September 2018
+June 2020
 */
 
-#ifndef PROBLEM_HEAT_PY_CPP_
-#define PROBLEM_HEAT_PY_CPP_
+#ifndef PROBLEM_HEAT_DUNE_CPP_
+#define PROBLEM_HEAT_DUNE_CPP_
 
 #include "Python.h"
-#include "problem_heat_python.h"
+#include "problem_heat_dune.h"
 #include "iostream"
 #include "cassert"
 #define NO_IMPORT_ARRAY
@@ -15,7 +15,7 @@ September 2018
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
-Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const char* class_name){
+Problem_heat_dune::Problem_heat_dune(int gridsize, double a, double g, const char* class_name){
     other_init_done = false;
     _length = gridsize + 2;
     
@@ -23,11 +23,11 @@ Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const
 //    PyRun_SimpleString("import sys; import os");
 //    PyRun_SimpleString("sys.path.append(os.getcwd())");
     PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('/home/peter/asynch-WFR/src/heat_DN_python/')");
+    PyRun_SimpleString("sys.path.append('/home/peter/asynch-WFR/src/heat_DN/dune_python/')");
 //    PyRun_SimpleString("os.environ['OMP_NUM_THREADS'] = '1'");
     
     // import file, resp. python script
-    PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_py"));
+    PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_dune_grad"));
     assert(pFile != NULL);
     
     PyObject *pDict = PyModule_GetDict(pFile);
@@ -44,15 +44,15 @@ Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const
     pClass_obj = PyObject_CallObject(pClass_name, pClassCall);
 }
 
-void Problem_heat_python::create_checkpoint(){
+void Problem_heat_dune::create_checkpoint(){
     PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("create_checkpoint"), NULL);
 }
 
-void Problem_heat_python::reset_to_checkpoint(){
+void Problem_heat_dune::reset_to_checkpoint(){
     PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("reset"), NULL);
 }
 
-void Problem_heat_python::get_u0(double* u_out){
+void Problem_heat_dune::get_u0(double* u_out){
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("get_u0"), NULL);
     Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
@@ -65,15 +65,15 @@ void Problem_heat_python::get_u0(double* u_out){
     Py_XDECREF(pOutput_arr);
 }
 
-void Problem_heat_python_D::do_step(double t, double dt, double *u_out, Waveform *WF_in){
+void Problem_heat_dune_D::do_step(double t, double dt, double *u_out, Waveform *WF_in){
     Pdt = PyFloat_FromDouble(dt);
     
     npy_intp dims[1]{_length_other};
     double *cInput = new double[_length_other];
     WF_in->eval(t + dt, cInput);
-    
     PyObject *pInput = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput));
     Py_XINCREF(pInput);
+    
     PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput, NULL);
     Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
@@ -88,15 +88,21 @@ void Problem_heat_python_D::do_step(double t, double dt, double *u_out, Waveform
     Py_XDECREF(pOutput_arr);
 }
 
-void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform *WF_in){
+void Problem_heat_dune_N::do_step(double t, double dt, double *u_out, Waveform *WF_in){
     Pdt = PyFloat_FromDouble(dt);
     npy_intp dims[1]{_length_other};
-    double *cInput_flux_new = new double[_length_other];
     
+    double *cInput_flux_old = new double[_length_other];
+    WF_in->eval(t, cInput_flux_old);
+    PyObject *pInput_old = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput_flux_old));
+    Py_XINCREF(pInput_old);
+    
+    double *cInput_flux_new = new double[_length_other];
     WF_in->eval(t + dt, cInput_flux_new);
     PyObject *pInput_new = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput_flux_new));
     Py_XINCREF(pInput_new);
-    PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput_new, NULL);
+    
+    PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pdt, pInput_old, pInput_new, NULL);
     Py_XINCREF(pOutput);
     PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
     Py_XINCREF(pOutput_arr);
@@ -110,4 +116,4 @@ void Problem_heat_python_N::do_step(double t, double dt, double *u_out, Waveform
     Py_XDECREF(pOutput_arr);
 }
 
-#endif //PROBLEM_HEAT_PY_CPP_
+#endif //PROBLEM_HEAT_DUNE_CPP_

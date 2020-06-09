@@ -17,9 +17,8 @@ September 2018
 
 class Problem_heat : public Problem{
 protected:
-    double _dx, _bx; // parameters for building initial condition
-    std::shared_ptr<dolfin::Constant> _dt;
-    std::shared_ptr<dolfin::Constant> _alpha, _lambda; // equation parameters
+    double _dx, _bx, _dxinv; // parameters for building initial condition
+    std::shared_ptr<dolfin::Constant> _dt, _alpha, _lambda; // equation parameters
     
     std::shared_ptr<dolfin::UnitSquareMesh> _mesh;
     std::shared_ptr<dolfin::FunctionSpace> _V; // FunctionSpace
@@ -29,27 +28,28 @@ protected:
     const dolfin::DirichletBC * _BC;
     std::vector<const dolfin::DirichletBC *> _bcs;
       
-    std::shared_ptr<dolfin::Function> _uold;
-    std::shared_ptr<dolfin::Function> _ucheckpoint;
-    //Function * _unew;
-    std::shared_ptr<dolfin::Function> _unew;
-    std::shared_ptr<dolfin::Function> _rhs_fnew;
+    std::shared_ptr<dolfin::Function> _uold, _unew, _ucheckpoint;
+    std::shared_ptr<dolfin::Function> _rhs_fold, _rhs_fnew;
     
     heat::BilinearForm * _a;
     heat::LinearForm   * _L;
     
     double * _uother_old, * _uother_new;
 public:
-    // gridsize, a, g, (bx, which_u0), last 3 are for initial conditions
+    // gridsize, a, g, (bx, which_u0), last 2 are for initial conditions
     // gridsize = number of internal unknowns on interface
     Problem_heat(int, double, double, double, int);
     
+    double get_norm_factor(){
+        return std::sqrt(_dx);
+    }
     void create_checkpoint(){
         *_ucheckpoint -> vector() = *_uold -> vector();
     }
     void reset_to_checkpoint(){
         *_uold -> vector() = *_ucheckpoint -> vector();
     }
+    
     double * get_uother_old_p(){return _uother_old;};
     double * get_uother_new_p(){return _uother_new;};
 };

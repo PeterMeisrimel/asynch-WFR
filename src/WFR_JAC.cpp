@@ -79,6 +79,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
     double window_length = _t_end/steps_macro;
 
+    norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
 	MPI_Barrier(MPI_COMM_WORLD);

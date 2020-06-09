@@ -8,6 +8,8 @@ Peter Meisrimel, Lund University, Sweden, peter.meisrimel@na.lu.se
 
 Benjamin Rüth, Munich University, Germany
 
+Robert Klöfkorn, NORCE, Norway
+
 Philipp Birken, Lund University, Sweden
 
 ## License
@@ -18,6 +20,7 @@ Published under the GNU General Public License v3.0 License
 
 At least MPI 2.x, respectively an implementation of the MPI 3 Standard. Has been developed using Open MPI 2.1.1
 For the heat equation test problem: FEniCs 2019.1.0
+DUNE
 
 ## Related Literature
 

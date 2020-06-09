@@ -50,7 +50,8 @@ protected:
     // -1: 2-norm of first system, -2: 2-norm of second system
     int conv_which, steps_converged, steps_converged_required;
 
-    double rel_update_fac, update, up_self, up_other;
+    // for convergence checking
+    double rel_update_fac, update, up_self, up_other, norm_factor;
 
     // gathering and printing of results
     int WF_iters, sol_size, sol_other_size, iters;
