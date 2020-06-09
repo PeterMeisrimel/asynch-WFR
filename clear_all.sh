@@ -5,10 +5,8 @@ cd ../bigger
 make clean
 
 cd ../heat_DN
-rm heat.h
+rm fenics_cpp/heat.h
+rm fenics_cpp/heat_flux.h
 make clean
 rm -r CMakeFiles
 rm CMakeCache.txt
-
-cd ../heat_DN_python
-make clean

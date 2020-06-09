@@ -33,7 +33,7 @@ class Problem_heat_D(Problem_heat):
         self.scheme = solutionScheme([self.A == self.b, *self.bcs], solver = 'cg')
         
         self.flux_grad = expression2GF(self.unew.space.grid, ufl.grad(self.unew), self.unew.space.order)
-        self.flux_f = lambda x: -float(self.lam)*lineSample(x, [0., 0.], [0., 1.], self.NN)[1]
+        self.flux_f = lambda x: float(self.lam)*lineSample(x, [0., 0.], [0., 1.], self.NN)[1]
         
         self.ug_interp = interp1d(self.yy, np.zeros(self.NN))
         self.ug_f = lambda x: self.ug_interp(x[1])
@@ -74,9 +74,9 @@ class Problem_heat_N(Problem_heat):
         self.fold = self.space.interpolate(0., name = 'fold')
         self.fnew = self.space.interpolate(0., name = 'fnew')
         if order == 1:
-            self.b += self.dt*self.fnew*ufl.conditional(self.x[0] < self.eps, 1, 0)*self.v*ufl.ds
+            self.b -= self.dt*self.fnew*ufl.conditional(self.x[0] < self.eps, 1, 0)*self.v*ufl.ds
         elif order == 2:
-            self.b += 0.5*self.dt*(self.fnew + self.fold)*ufl.conditional(self.x[0] < self.eps, 1, 0)*self.v*ufl.ds
+            self.b -= 0.5*self.dt*(self.fnew + self.fold)*ufl.conditional(self.x[0] < self.eps, 1, 0)*self.v*ufl.ds
         else:
             raise ValueError('no implementation for this order')
         

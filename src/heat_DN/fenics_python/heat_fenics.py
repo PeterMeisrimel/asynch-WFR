@@ -59,11 +59,11 @@ class Problem_heat:
         if order == 1: ## Implicit euler method
             self.F = (self.a*(self.unew - self.uold)*self.vtest*dol.dx
                       + self.dt*self.lam*dol.dot(dol.grad(self.unew), dol.grad(self.vtest))*dol.dx
-                      - self.dt*self.f_new*self.vtest*dol.ds)
+                      + self.dt*self.f_new*self.vtest*dol.ds)
         elif order == 2: ## Crank-Nicolson method
             self.F = (self.a*(self.unew - self.uold)*self.vtest*dol.dx
                       + 0.5*self.dt*self.lam*dol.dot(dol.grad(self.uold + self.unew), dol.grad(self.vtest))*dol.dx
-                      - 0.5*self.dt*(self.f_old + self.f_new)*self.vtest*dol.ds)
+                      + 0.5*self.dt*(self.f_old + self.f_new)*self.vtest*dol.ds)
         self.lhs, self.rhs = dol.lhs(self.F), dol.rhs(self.F)
 
         if mono:

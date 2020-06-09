@@ -32,7 +32,7 @@ class Problem_heat_D(Problem_heat):
     def get_flux(self):
         flux_sol = dol.assemble(self.F_flux)
         self.flux_f.vector().set_local(flux_sol/self.dx)
-        return -self.get_u_gamma(self.flux_f)
+        return self.get_u_gamma(self.flux_f)
     
     def do_step(self, dt, ug):
         self.dt.assign(dt)
