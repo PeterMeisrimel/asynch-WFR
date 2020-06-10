@@ -22,6 +22,10 @@ At least MPI 2.x, respectively an implementation of the MPI 3 Standard. Has been
 For the heat equation test problem: FEniCs 2019.1.0
 DUNE
 
+## Publications
+
+Meisrimel, Peter, and Philipp Birken. "Waveform Iteration with asynchronous communication." PAMM 19.1 (2019)
+
 ## Related Literature
 
 Parallel multigrid waveform relaxation for parabolic problems, Stefan Vandevalle, as a good introduction to WR. 
