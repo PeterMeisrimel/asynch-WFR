@@ -1,0 +1,10 @@
+DGF
+
+Interval
+-1 -1   % first corner
+ 1  1   % second corner
+60 60   % 4 cells in each direction (x, y)
+#
+
+Simplex
+#
