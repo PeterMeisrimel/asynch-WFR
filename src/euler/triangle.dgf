@@ -8,3 +8,13 @@ Interval
 
 Simplex
 #
+
+% ID (X1 Y1) (X2 Y2) defines boundaries by lines
+% here, going counter clockwise
+#
+BOUNDARYDOMAIN
+1   1 -1    1  1  % right boundary has id 1
+2  -1  1    1  1  % upper boundary has id 2
+3  -1 -1   -1  1  % left boundary has id 3
+4  -1 -1    1 -1  % lower boundary has id 4
+#BOUNDARYDOMAIN

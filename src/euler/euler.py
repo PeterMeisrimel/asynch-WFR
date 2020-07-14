@@ -3,15 +3,14 @@ Created on Thu Jun 11 14:52:41 2020
 
 modified from dune-fempy demo: 
 https://www.dune-project.org/sphinx/content/sphinx/dune-fem/euler_nb.html (May 2020)
-@author: Peter Meisrimel, Lund University
+@author: Peter Meisrimel, Lund University, with lots of help from Robert Klöfkorn
 """
 
 ## Euler System of Gas Dynamics
 
 import numpy as np
 import matplotlib
-matplotlib.rc( 'image', cmap='jet' )
-from matplotlib import pyplot
+matplotlib.rc('image', cmap = 'jet')
 import ufl
 from dune.grid import reader
 from dune.fem.space import finiteVolume
@@ -19,66 +18,36 @@ from dune.fem.function import gridFunction
 from dune.femdg import femDGOperator
 from dune.femdg.rk import femdgStepper
 from dune.alugrid import aluSimplexGrid as simplexGrid
-from dune.ufl import expression2GF
+from dune.ufl import expression2GF, Constant
 from dune.fem.utility import lineSample
 from scipy.interpolate import interp1d
 
-# Basic model for hyperbolic conservation law
-## has not been touched, just merged the velocity, physical and jump functions into the class
-#class Model:
-#    ## U = 4 variables
-#    ## primitive version = 3 variables with velocity being a vector!
-#    gamma = 1.4
-#    R = 287.058
-#    # helper function
-#    def toPrim(U):
-#        v = ufl.as_vector([U[i]/U[0] for i in range(1,3)])
-#        kin = ufl.dot(v,v) * U[0]/2
-#        pressure = (Model.gamma - 1)*(U[3] - kin)
-#        return U[0], v, pressure
-#
-#    # interface methods for model
-#    def F_c(t, x, U):
-#        rho, v, p = Model.toPrim(U)
-#        return ufl.as_matrix([
-#                  [rho*v[0], rho*v[1]],
-#                  [rho*v[0]*v[0] + p, rho*v[0]*v[1]],
-#                  [rho*v[0]*v[1], rho*v[1]*v[1] + p],
-#                  [(U[3] + p)*v[0], (U[3] + p)*v[1]]])
-#    # simple 'outflow' boundary conditions on all boundaries
-#    boundary = {1: lambda t, x, U: [U[0], 0, 0, U[3]],
-#                2: lambda t, x, U: [U[0], 0, 0, U[3]],
-#                3: lambda t, x, U: [U[0], 0, 0, U[3]],
-#                4: lambda t, x, U: [U[0], 0, 0, U[3]]}
-#    ## which is which? possibly fix these via ufl.conditionals? 
-##    boundary = {range(1, 5): lambda t, x, U: [10, 0, 0, 10]}
-#
-#    # interface method needed for LLF and time step control
-#    def maxLambda(t, x, U, n):
-#        rho, v, p = Model.toPrim(U)
-#        return abs(ufl.dot(v,n)) + ufl.sqrt(Model.gamma*p/rho)
-#
-#    ## methods for limiting
-#    def velocity(t, x, U):
-#        _, v, _ = Model.toPrim(U)
-#        return v
-#    def physical(t, x, U):
-#        rho, _, p = Model.toPrim(U)
-#        return ufl.conditional(rho > 1e-8, ufl.conditional(p > 1e-8, 1, 0), 0)
-#    def jump(t, x, U, V):
-#        _, _, pL = Model.toPrim(U)
-#        _, _, pR = Model.toPrim(V)
-#        return (pL - pR)/(0.5*(pL + pR))
-#    
-#    def temp(U):
-#        rho, _, p = Model.toPrim(U)
-#        return p/(rho*Model.R)
+xx = np.linspace(-1, 1, 100)
+aa = np.random.rand(100)*20
+interp = interp1d(xx, aa)
+def bound(x):
+#    print('aaaa', x, type(x), type(x[0]))
+#    return float(interp([x[0]])[0])
+    return float(interp([x])[0])
+#bound = lambda x: float(interp(x[0]))
+fff = lambda t: (t + 1)**20
+
+def fxx(t, x):
+    print(t, x, type(t), type(x))
+    return (t+1)
+
+## boundary takes whatever the input function is and converts it to a ufl function, no evaluations of this particular one except for initialization
 
 class Model:
     ## U = 4 variables
     ## primitive version = 3 variables with velocity being a vector!
-    gamma = 1.4
-    R = 287.058
+    
+    ## source https://www.ohio.edu/mechanical/thermo/property_tables/air/air_Cp_Cv.html
+    cp = 1005
+    cv = 718
+    gamma = 1.4 # adiabatic exponent cp/cv
+#    R = 287.058 # specific gas constant
+    R = cp - cv # specific gas constant
     # helper function
     def toPrim(self, U):
         v = ufl.as_vector([U[i]/U[0] for i in range(1,3)])
@@ -94,13 +63,15 @@ class Model:
                   [rho*v[0]*v[0] + p, rho*v[0]*v[1]],
                   [rho*v[0]*v[1], rho*v[1]*v[1] + p],
                   [(U[3] + p)*v[0], (U[3] + p)*v[1]]])
-    # simple 'outflow' boundary conditions on all boundaries
-    boundary = {1: lambda t, x, U: [U[0], -U[1], -U[2], U[3]],
-                2: lambda t, x, U: [U[0], -U[1], -U[2], U[3]],
-                3: lambda t, x, U: [U[0], U[1], U[2], U[3]],
-                4: lambda t, x, U: [U[0], U[1], U[2], U[3]]}
-    ## which is which? possibly fix these via ufl.conditionals? 
-#    boundary = {range(1, 5): lambda t, x, U: [10, 0, 0, 10]}
+    
+#    boundary = {1: lambda t, x, U: U, ## right
+#                2: lambda t, x, U: [1, 1, 0, 1], ## upper 
+#                3: lambda t, x, U: [1, 1, 0, 1], ## left
+#                4: lambda t, x, U: [U[0], U[1]/U[0], 0, U[3]]} ## lower
+    boundary = {1: lambda t, x, U: U, ## right
+                2: lambda t, x, U: [1, 1, 0, 1], ## upper 
+                3: lambda t, x, U: [1, 1, 0, 1], ## left
+                4: lambda t, x, U: U} ## lower
 
     # interface method needed for LLF and time step control
     def maxLambda(self, t, x, U, n):
@@ -137,7 +108,7 @@ class EulerSolver:
     ## get some more inputs, e.g. various orders
     def __init__(self, order_space = 2, order_time = 2):
         self.x = ufl.SpatialCoordinate(ufl.triangle)
-        self.u0 = ufl.conditional(ufl.sqrt(ufl.dot(self.x, self.x)) < 0.5, ## circle with radius 0.05
+        self.u0 = ufl.conditional(ufl.sqrt(ufl.dot(self.x, self.x)) < 0.5, ## circle with radius 0.5
                                   ufl.as_vector([1, 0, 0, 2.5]), ## inside, high density + pressure
                                   ufl.as_vector([0.125, 0, 0, 0.25])) ## outside, low density  + pressure
         
@@ -153,119 +124,57 @@ class EulerSolver:
         self.rho_gf = gridFunction(self.space.grid, name = "rho", order = order_space)(self.rho)
         
         self.Model = Model()
-#        self.operator = femDGOperator(Model, self.space, limiter = "MinMod") # note: that u_h.space fails since not ufl_space
         self.operator = femDGOperator(self.Model, self.space, limiter = "MinMod") # note: that u_h.space fails since not ufl_space
         ## does not seem to work, resp. take way too long for implicit?
         self.stepper = femdgStepper(order = order_time, operator = self.operator, rkType = 'EX')
         self.operator.applyLimiter(self.uh)
         
-        ## plotting
-        self.c, self.saveStep = 0, 0.01
-        self.fig = pyplot.figure(figsize = (30, 10))
-        self.rho_gf.plot(gridLines = "white", figure = (self.fig, 131 + self.c), colorbar = False, clim = [0.125, 1])
-        
         ## flux computation
-        ## how to compute flux only for temperature? resp. only for rho + pressure?
-#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.grad(self.uh[3]), self.uh.space.order) ## this would be the energy gradient?
-#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.grad(Model.temp(self.uh)), self.uh.space.order)
-        self.flux_grad = expression2GF(self.uh.space.grid, ufl.grad(self.Model.temp(self.uh)), self.uh.space.order)
-        self.flux_f = lambda x: lineSample(x, [-1., -1.], [-1., 1.], self.NN)[1]
+        ## can one write it like this, i.e., the self.Model.temp(self.uh) ? 
+#        self.normal = Constant((0., -1.))
+#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(ufl.grad(self.Model.temp(self.uh)), self.normal), self.uh.space.order)
+        self.normal = Constant((1., 0., 0., 0.))
+        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.normal), self.uh.space.order)
+        self.NN = 32 # number of sampling points?
+        ## always all zeros?
+        self.flux_f = lambda x: lineSample(x, [-1., 0.], [1., 0.], self.NN)[1] ## flux on the horizontal middle line
+#        self.flux_f = lambda x: lineSample(x, [-1., -1.], [1., -1.], self.NN)[1] ## flux at bottom boundary
         
     def rho(self, e, x):
         self.local_uh.bind(e)
         return self.local_uh(x)[0]
     
-    ## this one might just work?
     def get_flux(self):
-#        f = self.flux_f(self.uh) ## currently assume this would be fluxes of [rho, rho v1, rho v2, rho E]
-#        return Model.temp(f)
         return self.flux_f(self.flux_grad)
         
-    def do_step(self, t, dt):
+    ## variable "i" is for plotting purposes only
+    def do_step(self, t, dt, i):
         self.operator.setTime(t)
-        ## this doesn't appear to actually do anything?
-        self.Model.boundary[1] = lambda t, x, U: [-(t + 100)*U[0], -200*U[1], -200*U[2], -(t + 100)*U[3]]
+        ## this doesn't do anything, unphysical values and no complain
+        self.Model.boundary[1] = lambda t, x, U: [-10, 0, 0, -10]
         self.t += self.stepper(self.uh, dt = dt)
-        ## do plotting every self.saveStep time units
-        if self.t > self.saveStep:
-            self.saveStep += 0.1
-            self.c += 1
-            self.rho_gf.plot(gridLines = "white", figure = (self.fig, 131 + self.c), colorbar = False, clim = [0.125, 1])
+        self.gridView.writeVTK('solution', pointdata={'solution': self.uh}, number = i)
+        
+#        print(dir(self.operator.models[0]))
+#        print(dir(self.operator.models))
+#        assert False
             
     def solve(self, tf, n):
         dt = tf/n
         self.t = 0
-        for _ in range(n):
+        for i in range(n):
             print('doing step', self.t, dt, flush = True)
-            self.do_step(self.t, dt)
-        pyplot.show()
+            self.do_step(self.t, dt, i)
+#            print(self.get_flux())
         
 #    def __del__(self):
 #        print('deconstructor')
 #        pass
             
 if __name__ == '__main__':
-#    tf = 0.3
-#    n = 100
     tf = 0.6
     n = 200
     solver = EulerSolver()
     solver.solve(tf, n)
-    print('solving over')
-
-# time integration
-#def evolve(space, u_h):
-#    lu_h = u_h.localFunction()
-#    @gridFunction(space.grid, name = "rho", order = space.order)
-#    def rho(e, x):
-#        lu_h.bind(e)
-#        return lu_h(x)[0]
-#    operator = femDGOperator(Model, space, limiter = "MinMod") # note: that u_h.space fails since not ufl_space
-#    stepper  = femdgStepper(order = space.order if space.order else 2, operator = operator)
-#    operator.applyLimiter(u_h)
-#    t = 0
-#    saveStep = 0.01
-#    c = 0
-#    fig = pyplot.figure(figsize = (30, 10))
-#    rho.plot(gridLines = "white", figure = (fig, 131 + c), colorbar = False, clim = [0.125, 1])
-#    while t < 0.3:
-#        operator.setTime(t)
-#        t += stepper(u_h)
-#        print(t)
-#        if t > saveStep:
-#            saveStep += 0.1
-#            c += 1
-#            rho.plot(gridLines = "white", figure=(fig, 131 + c), colorbar = False, clim = [0.125, 1])
-#    # return lineSample(u_h,[0,0],[1,1],200)
-#    res = numpy.zeros((2, space.grid.size(0)))
-#    for i,e in enumerate(space.grid.elements):
-#        x = e.geometry.center
-#        res[0][i] = x.two_norm
-#        res[1][i] = rho(e, e.geometry.toLocal(x))
-#    pyplot.show()
-#    return res
-
-
-## initial condition
-#x = ufl.SpatialCoordinate(ufl.triangle)
-##initial = ufl.conditional(ufl.dot(x, x) < 0.1, ## circle with radius 0.1
-##                          ufl.as_vector([1, 0, 0, 2.5]), ## inside, high density + pressure
-##                          ufl.as_vector([0.125, 0, 0, 0.25])) ## outside, low density  + pressure
-#initial = ufl.conditional(ufl.sqrt(ufl.dot(x, x)) < 0.5, ## circle with radius 0.05
-#                          ufl.as_vector([1, 0, 0, 2.5]), ## inside, high density + pressure
-#                          ufl.as_vector([0.125, 0, 0, 0.25])) ## outside, low density  + pressure
-#
-#domain = (reader.dgf, "triangle.dgf") ## read domain specifications from file
-#gridView = simplexGrid(domain, dimgrid = 2) ## grid with triangles, using alugrid module
-#
-#space = finiteVolume(gridView, dimRange = 4) ## solution space
-#
-#u_h   = space.interpolate(initial, name = "solution")
-#res   = [evolve(space, u_h)]
-
-## not sure what I am actually seeing here?
-## Solutions along the diagonal
-#pyplot.scatter(res[0][0], res[0][1])
-#pyplot.scatter(res[1][0], res[1][1])
-# pyplot.scatter(res[2][0],res[2][1])
-#pyplot.show()
+    
+    print('all done')
