@@ -32,7 +32,8 @@ class Problem_heat_D(Problem_heat):
         
         self.scheme = solutionScheme([self.A == self.b, *self.bcs], solver = 'cg')
         
-        self.flux_grad = expression2GF(self.unew.space.grid, ufl.grad(self.unew), self.unew.space.order)
+        self.normal = Constant((1., 0.))
+        self.flux_grad = expression2GF(self.unew.space.grid, ufl.dot(ufl.grad(self.unew), self.normal), self.unew.space.order)
         self.flux_f = lambda x: float(self.lam)*lineSample(x, [0., 0.], [0., 1.], self.NN)[1]
         
         self.ug_interp = interp1d(self.yy, np.zeros(self.NN))
@@ -41,17 +42,11 @@ class Problem_heat_D(Problem_heat):
     def get_u0(self): return self.get_flux()
 		
     def get_flux(self):
-#        gradUnew = expression2GF(self.unew.space.grid, ufl.grad(self.unew), self.unew.space.order)
-#        return -float(self.lam)*lineSample(gradUnew, [0., 0.], [0., 1.], self.NN)[1]
-        
-#        return -float(self.lam)*lineSample(self.flux_grad, [0., 0.], [0., 1.], self.NN)[1]
         return self.flux_f(self.flux_grad)
     
     def do_step(self, dt, ug):
         self.dt.value = dt
         
-#        intp = interp1d(self.yy, ug)
-#        self.u_gamma.interpolate(lambda x: intp(x[1]))
         self.ug_interp.y = ug
         self.u_gamma.interpolate(self.ug_f)
         
@@ -97,12 +92,6 @@ class Problem_heat_N(Problem_heat):
     def do_step(self, dt, flux_1, flux_2):
         self.dt.value = dt
         
-#        intp_flux = interp1d(self.yy, flux_1)
-#        self.fold.interpolate(lambda x: intp_flux(x[1]))
-        
-#        intp_flux = interp1d(self.yy, flux_2)
-#        self.fnew.interpolate(lambda x: intp_flux(x[1]))
-        
         self.f_old_interpol.y = flux_1
         self.fold.interpolate(self.f_old_f)
         
@@ -117,10 +106,10 @@ class Problem_heat_N(Problem_heat):
         dt = tf/n_steps
         for i, t in enumerate(np.linspace(0, tf, n_steps + 1)[:-1]):
             self.get_ex_flux(t) # ex flux now sits in unew
-            flux_old = -np.copy(self.get_u_gamma(self.unew))
+            flux_old = np.copy(self.get_u_gamma(self.unew))
             
             self.get_ex_flux(t + dt) # ex flux now sits in unew
-            flux_new = -np.copy(self.get_u_gamma(self.unew))
+            flux_new = np.copy(self.get_u_gamma(self.unew))
             
             self.do_step(dt, flux_old, flux_new)
 
@@ -156,7 +145,7 @@ if __name__ == '__main__':
 
 #    verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
 #    verify_with_monolithic(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
-    
+#    
     from verification import verify_comb_error
     ## verify combined error, splitting + time int for decreasing dt
 #    verify_comb_error(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
@@ -172,7 +161,7 @@ if __name__ == '__main__':
     from verification import plot_theta
     pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -2, 'xb': 1}
 #    plot_theta(solve_WR = solver, savefig = savefig, order = 1, **pp)
-    plot_theta(solve_WR = solver, savefig = savefig, order = 2, **pp)
+#    plot_theta(solve_WR = solver, savefig = savefig, order = 2, **pp)
     
     ## verify time-integration order with itself
     from verification import verify_self_time

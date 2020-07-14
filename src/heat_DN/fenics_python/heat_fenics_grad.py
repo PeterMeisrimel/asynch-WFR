@@ -71,10 +71,10 @@ class Problem_heat_N(Problem_heat):
         dt = tf/n_steps
         for i, t in enumerate(np.linspace(0, tf, n_steps + 1)[:-1]):
             self.get_ex_flux(t) # get solution for flux into self.usol
-            flux_old = -np.copy(self.get_u_gamma(self.usol))
+            flux_old = np.copy(self.get_u_gamma(self.usol))
             
             self.get_ex_flux(t + dt) # get solution for flux into self.usol
-            flux_new = -np.copy(self.get_u_gamma(self.usol))
+            flux_new = np.copy(self.get_u_gamma(self.usol))
             
             self.do_step(dt, flux_old, flux_new)
     
@@ -128,7 +128,3 @@ if __name__ == '__main__':
     pp = {'tf': 1., **get_parameters(), 'gridsize': 16, 'xa': -2, 'xb': 1, 'theta': 0.5}
 #    verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
 #    verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)
-    
-    pp = {'xa': -1, 'xb': 1, 'alpha': 1, 'lambda_diff': 0.01, 'gridsize': 32}
-    print(solver(1., 100, 100, 100, 1e-6, 0.5, **pp))
-#    solve_WR(tf, N1, N2, maxiter, TOL, th, Nx = None, Ny = None, dx = None, **kwargs):

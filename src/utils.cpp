@@ -102,7 +102,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     bool new_relax_opt = false; // new scheme only with relaxation parameters 
     double w_relax = 1, w_relax_jac = 1, w_relax_gs1 = 1, w_relax_gs2 = 1;
     
-    bool match_which_conv_relax = false;
+    bool match_which_conv_relax = true;
     
     process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST,
                    errlogging, commlogging, steps_converged_required,

@@ -18,6 +18,7 @@ June 2020
 Problem_heat_dune::Problem_heat_dune(int gridsize, double a, double g, const char* class_name){
     other_init_done = false;
     _length = gridsize + 2;
+    _dx  = 1/(gridsize + 1);
     
 //     this appears to change the paths to the current directory? without it, the import fails
 //    PyRun_SimpleString("import sys; import os");

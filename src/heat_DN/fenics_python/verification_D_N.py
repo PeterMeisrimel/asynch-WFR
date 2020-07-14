@@ -9,7 +9,6 @@ Created on Wed May 20 16:43:51 2020
 import numpy as np
 import pylab as pl
 from heat_fenics import Problem_heat
-from scipy.interpolate import interp1d
 
 pl.rcParams['lines.linewidth'] = 2
 pl.rcParams['font.size'] = 18
@@ -55,7 +54,7 @@ def verify_time(prob = None, D = True, tf = 1, k = 10, kmin = 0, order = 1, save
         if D:
             u = p.get_sol(abs(xa)*Nx + 1, Nx + 1, dx, xa)
             errs.append(np.linalg.norm(u - ref, 2)*L2_fac)
-            f = -p.get_flux()
+            f = p.get_flux()
             errs_f.append(np.linalg.norm(f - ref_f, 2)*L2_fac_intf)
         else:
             u = p.get_sol(Nx + 1, Nx + 1, dx, 0)
@@ -101,7 +100,7 @@ def verify_space(prob = None, D = True, tf = 1, N_steps = 100, k = 10, kmin = 0,
         if D:
             u = p.get_sol(abs(xa)*Nx + 1, Nx + 1, dxs[-1], xa)
             errs.append(np.linalg.norm(u - ref, 2)*L2_fac)
-            f = -p.get_flux()
+            f = p.get_flux()
             errs_f.append(np.linalg.norm(f - ref_f, 2)*L2_fac_intf)
         else:
             u = p.get_sol(Nx + 1, Nx + 1, dxs[-1], 0)

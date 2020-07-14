@@ -79,8 +79,6 @@ class Problem_heat:
         self.create_checkpoint()
         self.reset()
         
-        
-        
         self.u_gamma_f = lambda x: lineSample(x, [0., 0.], [0., 1.], self.NN)[1]
         
     def reset(self):
@@ -91,7 +89,6 @@ class Problem_heat:
         self.u_checkpoint.interpolate(self.uold)
         
     def get_u_gamma(self, ugamma):
-#        return lineSample(ugamma, [0., 0.], [0., 1.], self.NN)[1]
         return self.u_gamma_f(ugamma)
     
     def do_step(self, dt, ug):
@@ -114,7 +111,6 @@ class Problem_heat:
     def get_sol(self, Nx, Ny, dx, xx = 0, offset = 0):
         res = np.zeros(Nx*Ny)
         for i in range(offset,  Nx):
-#            res[(i-offset)*Ny:(i-offset+1)*Ny] = lineSample(self.unew, [xx + i*dx, 0.], [xx + i*dx, 1.], self.NN)[1]
             res[(i-offset)*Ny:(i-offset+1)*Ny] = lineSample(self.unew, [xx + i*dx, 0.], [xx + i*dx, 1.], Ny)[1]
         return res
     

@@ -16,11 +16,15 @@ March 2020
 class Problem_heat_python : public Problem{
 protected:
     PyObject *pClass_obj, *Pdt;
+    double _dx;
 public:
     Problem_heat_python(int, double, double, const char*);
     void create_checkpoint();
     void reset_to_checkpoint();
     void get_u0(double*);
+    double get_norm_factor(){
+        return std::sqrt(_dx);
+    }
     void init_other(int len_other){
         _length_other = len_other;
     };
