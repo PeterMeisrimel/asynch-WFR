@@ -64,14 +64,14 @@ class Model:
                   [rho*v[0]*v[1], rho*v[1]*v[1] + p],
                   [(U[3] + p)*v[0], (U[3] + p)*v[1]]])
     
-#    boundary = {1: lambda t, x, U: U, ## right
-#                2: lambda t, x, U: [1, 1, 0, 1], ## upper 
-#                3: lambda t, x, U: [1, 1, 0, 1], ## left
-#                4: lambda t, x, U: [U[0], U[1]/U[0], 0, U[3]]} ## lower
+    ## by ID, see triangle.dgf file, given in conservative form
     boundary = {1: lambda t, x, U: U, ## right
                 2: lambda t, x, U: [1, 1, 0, 1], ## upper 
                 3: lambda t, x, U: [1, 1, 0, 1], ## left
-                4: lambda t, x, U: U} ## lower
+                4: lambda t, x, U: [1, 1, 0, 1], ## lower left
+                5: lambda t, x, U: [3, 1, 0, 1], ## lower centre
+                6: lambda t, x, U: [1, 1, 0, 1]  ## lower right
+                } 
 
     # interface method needed for LLF and time step control
     def maxLambda(self, t, x, U, n):
@@ -96,10 +96,8 @@ class Model:
     
 ## TODO
 """
-how to disable alugrid messages
 Implicit time integration?
 Change domain/grid
-Change boundaries
 input of boundary data
 Fluid solver takes heat flux, i.e., energy flux as input and outputs boundary temperature
 """
@@ -108,9 +106,7 @@ class EulerSolver:
     ## get some more inputs, e.g. various orders
     def __init__(self, order_space = 2, order_time = 2):
         self.x = ufl.SpatialCoordinate(ufl.triangle)
-        self.u0 = ufl.conditional(ufl.sqrt(ufl.dot(self.x, self.x)) < 0.5, ## circle with radius 0.5
-                                  ufl.as_vector([1, 0, 0, 2.5]), ## inside, high density + pressure
-                                  ufl.as_vector([0.125, 0, 0, 0.25])) ## outside, low density  + pressure
+        self.u0 = ufl.as_vector([1, 1, 0, 1])
         
         self.domain = (reader.dgf, "triangle.dgf") ## read domain specifications from file
         self.gridView = simplexGrid(self.domain, dimgrid = 2) ## grid with triangles, using alugrid module

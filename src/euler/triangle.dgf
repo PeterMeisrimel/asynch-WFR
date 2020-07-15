@@ -11,10 +11,13 @@ Simplex
 
 % ID (X1 Y1) (X2 Y2) defines boundaries by lines
 % here, going counter clockwise
+% There appears to be some issues with boundaries being at e.g. 0.25, leading to unphysical results?
 #
 BOUNDARYDOMAIN
-1   1 -1    1  1  % right boundary has id 1
-2  -1  1    1  1  % upper boundary has id 2
-3  -1 -1   -1  1  % left boundary has id 3
-4  -1 -1    1 -1  % lower boundary has id 4
+1   1 -1    1  1        % right boundary has id 1
+2  -1  1    1  1        % upper boundary has id 2
+3  -1 -1   -1  1        % left boundary has id 3
+4  -1 -1    -0.5 -1  % lower boundary left
+5  -0.5 -1    0.5 -1  % lower boundary centre
+6  0.5 -1    1 -1  % lower boundary right
 #BOUNDARYDOMAIN
