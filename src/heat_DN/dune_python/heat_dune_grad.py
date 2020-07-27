@@ -80,7 +80,6 @@ class Problem_heat_N(Problem_heat):
         
         self.scheme = solutionScheme([self.A == self.b, *self.bcs], solver = 'cg')
         
-        
         self.f_old_interpol = interp1d(self.yy, np.zeros(self.NN))
         self.f_old_f = lambda x: self.f_old_interpol(x[1])
         

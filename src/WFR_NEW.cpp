@@ -484,7 +484,7 @@ void WFR_NEW_relax_opt::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
     double t, dt;
 
 	for(int i = 0; i < steps; i++){ // timestepping loop
-        // first sync flags, other way around a flag might be true, but data might not be there yet
+        // first sync flags, other way around a flag might be true, but data might not be there yet (flag updated during data sync.)
         // alternative: enclose locks?
         // synch flags marking which data is new
         MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_recv_flag); // Shared as it is read only
