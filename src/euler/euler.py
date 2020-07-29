@@ -14,35 +14,12 @@ matplotlib.rc('image', cmap = 'jet')
 import ufl
 from dune.grid import reader
 from dune.fem.space import finiteVolume
-from dune.fem.function import gridFunction
 from dune.femdg import femDGOperator
 from dune.femdg.rk import femdgStepper
 from dune.alugrid import aluSimplexGrid as simplexGrid
 from dune.ufl import expression2GF, Constant
 from dune.fem.utility import lineSample
 from scipy.interpolate import interp1d
-
-#xx = np.linspace(-1, 1, 100)
-#aa = np.random.rand(100)*20
-#interp = interp1d(xx, aa)
-#def bound(x):
-##    print('aaaa', x, type(x), type(x[0]))
-##    return float(interp([x[0]])[0])
-#    return float(interp([x])[0])
-##bound = lambda x: float(interp(x[0]))
-#fff = lambda t: (t + 1)**20
-
-#def fxx(t, x):
-#    ## this needs to be an ufl expression or similar
-#    return (t+1) * ufl.exp(x[0])
-
-#class interpol_exp(ufl.classes.Expr):
-#    def __init__(self):
-#        pass
-#    
-#    def evaluate(self, x, a, b, c):
-#        return 2
-    
 
 #class interpol_exp(ufl.core.expr.Expr):
 #@ufl.core.ufl_type.Expr()
@@ -73,24 +50,24 @@ from scipy.interpolate import interp1d
 #    def evaluate(self, x, mapping, component, index_values):
 #        a = self.ufl_operands[0].evaluate(x, mapping, component, index_values)
 #        return 2
-import math
+#import math
+#
+#@ufl.core.ufl_type.ufl_type()
+#class interpol_exp(ufl.mathfunctions.MathFunction):
+#    __slots__ = ()
+#    
+#    def set_vals(self, xx, yy):
+#        self.interp = interp1d(xx.copy(), yy.copy())
 
-@ufl.core.ufl_type.ufl_type()
-class interpol_exp(ufl.mathfunctions.MathFunction):
-    __slots__ = ()
-    
-    def set_vals(self, xx, yy):
-        self.interp = interp1d(xx.copy(), yy.copy())
-
-## cls functions have access to class parameters, but not parameters specific to the instance
-#    def __new__(cls, argument):
-    def __new__(self, argument):
-#        print(argument)
-#        print(type(argument))
-        return ufl.constantvalue.FloatValue(math.exp(float(argument)))
-
-    def __init__(self, argument):
-        ufl.mathfunctions.MathFunction.__init__(self, "exp", argument)
+### cls functions have access to class parameters, but not parameters specific to the instance
+##    def __new__(cls, argument):
+#    def __new__(self, argument):
+##        print(argument)
+##        print(type(argument))
+#        return ufl.constantvalue.FloatValue(math.exp(float(argument)))
+#
+#    def __init__(self, argument):
+#        ufl.mathfunctions.MathFunction.__init__(self, "exp", argument)
 
 #@ufl.core.ufl_type.ufl_type()
 #class interpol_exp(ufl.core.expr.Expr):
@@ -127,22 +104,21 @@ class Model:
         self.T1 = self.T0 + 400
         self.vx0, self.vy0 = 1, 0 # m/s
         
+        ## initial energies
         self.E0 = self.rho0 * (self.R*self.T0*(self.gamma - 1) + 0.5 * (self.vx0**2 + self.vy0**2))
         self.E1 = self.rho0 * (self.R*self.T1*(self.gamma - 1) + 0.5 * (self.vx0**2 + self.vy0**2))
-        ## something wrong about these boundary conditions/initial conditions
-        ## sends quite a wave (not shockwave though) upwards at beginning
         
-        ## by ID, see triangle.dgf file
+        ## by ID, see triangle.dgf file, 5 = interface
         # given in conservative form
         self.boundary = {1: lambda t, x, U: U, ## right
                          2: lambda t, x, U: [self.rho0, self.vx0, self.vy0, self.E0], ## upper 
                          3: lambda t, x, U: [self.rho0, self.vx0, self.vy0, self.E0], ## left
                          4: lambda t, x, U: [U[0], U[1], 0,
-                                             U[0]*(self.R*(self.gamma-1)*self.T1 + 0.5*(U[1]/U[0])**2)], ## lower left
+                                             U[0]*(self.R*(self.gamma-1)*self.T0 + 0.5*(U[1]/U[0])**2)], ## lower left
                          5: lambda t, x, U: [U[0], U[1], 0, 
                                              U[0]*(self.R*(self.gamma-1)*self.T1 + 0.5*(U[1]/U[0])**2)], ## lower centre
                          6: lambda t, x, U: [U[0], U[1], 0, 
-                                             U[0]*(self.R*(self.gamma-1)*self.T1 + 0.5*(U[1]/U[0])**2)]  ## lower right
+                                             U[0]*(self.R*(self.gamma-1)*self.T0 + 0.5*(U[1]/U[0])**2)]  ## lower right
                          } 
         
         self.eps = 1e-13
@@ -197,11 +173,10 @@ class Model:
     
     def set_temp(self, T, U):
         rho, v, p = self.toPrim(U)
-        return ufl.as_vector([rho, rho*v[0], 0, rho*(self.R*(self.gamma - 1)*T + 0.5*v[0]*v[0])])
+        return (rho, rho*v[0], 0, rho*(self.R*(self.gamma - 1)*T + 0.5*v[0]*v[0]))
     
 ## TODO
 """
-Implicit time integration?
 Change domain/grid
 input of boundary data
 Fluid solver takes heat flux, i.e., energy flux as input and outputs boundary temperature
@@ -210,95 +185,99 @@ Fluid solver takes heat flux, i.e., energy flux as input and outputs boundary te
 class EulerSolver:
     ## get some more inputs, e.g. various orders
     def __init__(self, order_space = 2, order_time = 2):
-        self.x = ufl.SpatialCoordinate(ufl.triangle)
         self.Model = Model()
-        self.u0 = self.Model.u0
         
         self.domain = (reader.dgf, "triangle.dgf") ## read domain specifications from file
         self.gridView = simplexGrid(self.domain, dimgrid = 2) ## grid with triangles, using alugrid module
         self.space = finiteVolume(self.gridView, dimRange = 4) ## solution space
-        self.uh = self.space.interpolate(self.u0, name = "solution")
+        self.uh = self.space.interpolate(self.Model.u0, name = "solution")
         
-        self.uh_bd = self.space.interpolate(Constant((1.225, 1., 0., self.Model.E0)), name = "bd")
+        self.uh_boundary = self.space.interpolate((self.Model.rho0, self.Model.vx0, self.Model.vy0, self.Model.E1), name = "uh_bd")
+        self.Model.boundary[5] = lambda t, x, U: self.uh_boundary
         
-        for i in range(1, 7):
-            ## this seems to work as a start? 
-            ## next steps:
-            # get values at boundary, I guess on a line, do temperature modification, interpolate from pyhton function to function space
-            self.Model.boundary[i] = lambda t, x, U: self.u0
-        
-        self.local_uh = self.uh.localFunction()
-        
-        ## this one causes the crash upon deconstruction of sorts?
-        ## current error, something is trying to be freed, that was not allocated by malloc.
-        self.rho_gf = gridFunction(self.space.grid, name = "rho", order = order_space)(self.rho)
-        
-#        yy = np.linspace(-0.5, 0.5, 20)
-#        zz = np.array(range(1, 21))
-#        ii = interp1d(yy, zz)
-        
-#        self.Model = Model()
-        
-#        x = ufl.SpatialCoordinate(ufl.triangle)
-#        aa = interpol_exp(1)
-#        aa = interpol_exp()
-#        self.Model.boundary[5] = lambda t, x, U, n: [ii(x[0]), 1, 0, 1]
-#        self.Model.boundary[5] = lambda t, x, U, *args: ufl.as_vector([aa.evaluate, 1, 0, 1])
-#        self.Model.boundary[5] = lambda t, x, U, *args: self.Model.set_temp(10000, U)
-#        self.Model.boundary[5] = lambda t, x, U, *args: [3, 1, 0, 1]
-        self.operator = femDGOperator(self.Model, self.space, limiter = "MinMod") # note: that u_h.space fails since not ufl_space
-        ## does not seem to work, resp. take way too long for implicit?
+        self.operator = femDGOperator(self.Model, self.space, limiter = "MinMod")
+#        self.stepper = femdgStepper(order = order_time, operator = self.operator, rkType = 'IM')
         self.stepper = femdgStepper(order = order_time, operator = self.operator, rkType = 'EX')
         self.operator.applyLimiter(self.uh)
         
         ## flux computation
         ## can one write it like this, i.e., the self.Model.temp(self.uh) ? 
-#        self.normal = Constant((0., -1.))
-#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(ufl.grad(self.Model.temp(self.uh)), self.normal), self.uh.space.order)
-        self.normal = Constant((1., 0., 0., 0.))
-        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.normal), self.uh.space.order)
-        self.NN = 32 # number of sampling points?
-        ## always all zeros?
-        self.flux_f = lambda x: lineSample(x, [-1., 0.], [1., 0.], self.NN)[1] ## flux on the horizontal middle line
-#        self.flux_f = lambda x: lineSample(x, [-1., -1.], [1., -1.], self.NN)[1] ## flux at bottom boundary
+        self.n_q = Constant((0., -1.))
+#        self.heat_flux = expression2GF(self.uh.space.grid, ufl.dot(ufl.grad(self.Model.temp(self.uh)), self.n_q), self.uh.space.order)
+        self.heat_flux = expression2GF(self.uh.space.grid, ufl.grad(self.Model.temp(self.uh)), self.uh.space.order)
         
-    def rho(self, e, x):
-        self.local_uh.bind(e)
-        return self.local_uh(x)[0]
+        ## evaluation of rho and v_x at interface
+        self.n_rho = Constant((1, 0, 0, 0))
+        self.eval_rho = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.n_rho), self.uh.space.order)
+        self.n_vx = Constant((0, 1, 0, 0))
+        self.eval_vx = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.n_vx), self.uh.space.order)
+        
+#        self.normal = Constant((1., 0., 0., 0.))
+#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.normal), self.uh.space.order)
+        self.NN = 10 # number of sampling points?
+        self.sample_points = np.linspace(-0.5, 0.5, self.NN) ## bottom boundary line
+        self.f_sample = lambda x: lineSample(x, [-0.5, -1], [0.5, -1], self.NN)[1] ## sampling function for boundary[5], the interface
+        
+        self.tmp_fac = self.Model.R*(self.Model.gamma-1)
     
     def get_flux(self):
-        return self.flux_f(self.flux_grad)
+        return self.f_sample(self.heat_flux)
+    
+    def set_intf_temp(self, temps):
+#        intp = interp1d(self.sample_points, temps, fill_value = 'extrapolate')
+#        ff = lambda x: (self.Model.rho0, self.Model.vx0, self.Model.vy0, intp(x[0]))
+#        self.uh_boundary.interpolate(ff)
+#        rho = self.f_sample(self.eval_rho)
+#        vx = self.f_sample(self.eval_vx)/rho
+#        intp = interp1d(self.sample_points,
+#                        (rho, rho*vx, np.zeros(self.NN), rho*(self.tmp_fac*temps + 0.5*vx**2)),
+#                        axis = 1, fill_value = 'extrapolate')
+#        self.uh_boundary.interpolate(lambda x: intp(x[0]))
+        
+#        rho = self.f_sample(self.eval_rho)
+#        vx = self.f_sample(self.eval_vx)/rho
+        intp = interp1d(self.sample_points, temps, fill_value = 'extrapolate')
+        self.uh_boundary.interpolate(lambda x: (self.Model.rho0, self.Model.vx0, 0, intp(x[0])))
+#        def f(x, U):
+#            r = U(x)
+#            return (r[0], r[1], 0, r[0]*(self.Model.R*(self.Model.gamma-1)*intp(x[0]) + 0.5*(r[1]/r[0])**2))
+#        self.uh_boundary.interpolate(lambda x: f(x, self.uh_boundary))
+#        self.uh_boundary.interpolate(lambda x: self.Model.set_temp(intp(x[0]), self.uh_boundary))
+        
         
     ## variable "i" is for plotting purposes only
-    def do_step(self, t, dt, i):
+    def do_step(self, t, dt):
         self.operator.setTime(t)
-        ## this doesn't do anything, unphysical values and no complain
-#        self.Model.boundary[1] = lambda t, x, U: [-10, 0, 0, -10]
-        self.t += self.stepper(self.uh, dt = dt)
-#        self.gridView.writeVTK('solution', pointdata={'solution': self.uh, 'T': self.Model.temp(self.uh)}, number = i)
         
-#        print(dir(self.operator.models[0]))
-#        print(dir(self.operator.models))
-#        assert False
+#        vals = np.ones(self.NN)*(1 - self.t*90)*self.Model.E1
+        if t < 0.005:
+            vals = np.ones(self.NN)*self.Model.E1
+        else:
+            vals = np.ones(self.NN)*self.Model.E0
+        self.set_intf_temp(vals)
+        
+#        print('boundary set')
+        self.t += self.stepper(self.uh, dt = dt)
             
     def solve(self, tf, n):
         dt = tf/n
         self.t = 0
         for i in range(n):
             print('doing step', self.t, dt, flush = True)
-            self.do_step(self.t, dt, i)
-#            print(self.get_flux())
-        
-#    def __del__(self):
-#        print('deconstructor')
-#        pass
+            self.do_step(self.t, dt)
             
+#            print('timestep done, writing')
+            self.gridView.writeVTK('solution', pointdata={'solution': self.uh, 'T': self.Model.temp(self.uh)}, number = i)
+#            self.gridView.writeVTK('solution', pointdata={'solution': self.uh}, number = i+1)
+#            print('writing done')
+            print(self.get_flux())
+                        
 if __name__ == '__main__':
 #    tf = 1.2
 #    n = 400
-    tf = 0.05
-    n = 2000
+#    tf = 0.05
+#    n = 2000
+    tf = 0.01
+    n = 400
     solver = EulerSolver()
     solver.solve(tf, n)
-    
-    print('all done')
