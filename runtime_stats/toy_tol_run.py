@@ -12,9 +12,9 @@ from run_tolerances import run_tolerances
 from postprocessing_cpp_output import process_output, delete_raw_data
 from produce_plotting_data import produce_plotting_data
 
-times = 2
-tolerances = [10**(-i) for i in range(7)]
-parameters = {'timesteps' : 100, 'macrosteps': 5, 'maxiter': 200}
+times = 10
+tolerances = [10**(-i) for i in range(10)]
+parameters = {'timesteps' : 100, 'macrosteps': 1, 'maxiter': 200, 'nconv': 3}
 
 print('Starting run...')
 print('times: ', times)
@@ -32,7 +32,7 @@ path = run_tolerances('toy', 'TOY', 'toy_test', times = times,
 print('...processing output')
 process_output(path)
 print('...deleting raw data')
-delete_raw_data(path)
+#delete_raw_data(path)
 print('...producing plotting data')
 produce_plotting_data(path)
 print('...plotting')

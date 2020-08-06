@@ -11,9 +11,9 @@ import matplotlib.pylab as pl
 import json
 
 pl.close('all')
-pl.rcParams['lines.linewidth'] = 3
-pl.rcParams['lines.markersize'] = 17
-fs = 32
+pl.rcParams['lines.linewidth'] = 2
+pl.rcParams['font.size'] = 18
+pl.rcParams['lines.markersize'] = 9
 
 import itertools
 def reset_markers():
@@ -45,7 +45,7 @@ from shutil import copy2
 copy2(path + 'parameters.txt', plot_path + '/eps')
 copy2(path + 'parameters.txt', plot_path + '/png')
         
-fig, ax = pl.subplots(figsize = (12, 10))
+fig, ax = pl.subplots()
 markers, colors = reset_markers()
 
 for num, k in enumerate(data.keys()):
@@ -53,44 +53,44 @@ for num, k in enumerate(data.keys()):
     m = next(markers)
     pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = data[k]['label'], marker = m, color = c)
     if 'NEW' in k:
-        pl.semilogx(data[k]['tols'], data[k]['iters_min'], color = c, lw = 2)
-        pl.semilogx(data[k]['tols'], data[k]['iters_max'], color = c, lw = 2)
+        pl.semilogx(data[k]['tols'], data[k]['iters_min'], color = c)
+        pl.semilogx(data[k]['tols'], data[k]['iters_max'], color = c)
         
 #ax.set_title('Tolerance vs. #Waveform iterations', fontsize = fs + 2)
-ax.set_xlabel('Waveform update tolerance', fontsize = fs)
-ax.set_ylabel('Iterations', fontsize = fs)
+ax.set_xlabel('TOL', labelpad = -20, position = (1.05, -1), fontsize = 20)
+ax.set_ylabel('k', rotation = 0, labelpad = -40, position = (2., 1.05), fontsize = 20)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
-ax.legend(fontsize = fs - 12, loc = 0)
+ax.legend(loc = 0)
 fig.savefig(plot_path + '/eps/tolerance_vs_iters.eps', dpi = 100)
 fig.savefig(plot_path + '/png/tolerance_vs_iters.png', dpi = 100)
 ###########################################################
 
-fig, ax = pl.subplots(figsize = (12, 10))
+fig, ax = pl.subplots()
 markers, colors = reset_markers()
 
 pl.loglog([float(x) for x in parameters['tolerances']],
           [float(x) for x in parameters['tolerances']],
-          label = 'tol', marker = None, color = 'k', linestyle = '--')
+          label = 'TOL', marker = None, color = 'k', linestyle = '--')
 for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
     if 'NEW' in k:
-        pl.semilogx(data[k]['tols'], data[k]['errors2_min'], color = c, lw = 2)
-        pl.semilogx(data[k]['tols'], data[k]['errors2_max'], color = c, lw = 2)
+        pl.semilogx(data[k]['tols'], data[k]['errors2_min'], color = c)
+        pl.semilogx(data[k]['tols'], data[k]['errors2_max'], color = c)
         
 #ax.set_title('Tolerance vs. Error', fontsize = fs + 2)
-ax.set_xlabel('Waveform update tolerance', fontsize = fs)
-ax.set_ylabel('Err', fontsize = fs)
+ax.set_xlabel('TOL', labelpad = -20, position = (1.08, -1), fontsize = 20)
+ax.set_ylabel('Err', rotation = 0, labelpad = -50, position = (2., 1.05), fontsize = 20)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
-ax.legend(fontsize = fs-12, loc = 0)
+ax.legend(loc = 0)
 fig.savefig(plot_path + '/eps/tolerance_vs_err.eps', dpi = 100)
 fig.savefig(plot_path + '/png/tolerance_vs_err.png', dpi = 100)
 ###########################################################
 
-fig, ax = pl.subplots(figsize = (12, 10))
+fig, ax = pl.subplots()
 markers, colors = reset_markers()
 
 for num, k in enumerate(data.keys()):
@@ -98,20 +98,20 @@ for num, k in enumerate(data.keys()):
     m = next(markers)
     pl.loglog(data[k]['tols'], data[k]['times_med'], label = data[k]['label'], marker = m, color = c)
     if 'NEW' in k:
-        pl.loglog(data[k]['tols'], data[k]['times_min'], color = c, lw = 2)
-        pl.loglog(data[k]['tols'], data[k]['times_max'], color = c, lw = 2)
+        pl.loglog(data[k]['tols'], data[k]['times_min'], color = c)
+        pl.loglog(data[k]['tols'], data[k]['times_max'], color = c)
     
 #ax.set_title('Tolerance vs. Computational time', fontsize = fs + 2)
-ax.set_xlabel('Waveform update tolerance', fontsize = fs)
-ax.set_ylabel('Time (Wall Clock)', fontsize = fs)
+ax.set_xlabel('TOL', labelpad = -20, position = (1.05, -1), fontsize = 20)
+ax.set_ylabel('Time', rotation = 0, labelpad = -70, position = (2., 1.05), fontsize = 20)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
-ax.legend(fontsize = fs - 12, loc = 0)
+ax.legend(loc = 0)
 fig.savefig(plot_path + '/eps/tolerance_vs_time.eps', dpi = 100)
 fig.savefig(plot_path + '/png/tolerance_vs_time.png', dpi = 100)
 
 ###########################################################
-fig, ax = pl.subplots(figsize = (12, 10))
+fig, ax = pl.subplots()
 markers, colors = reset_markers()
 facecolor = reset_fc()
 
@@ -130,17 +130,16 @@ for num, k in enumerate(data.keys()):
         max_e = data[k]['errors2_max'][n]
         ax.fill_between([min_t, val_t, max_t], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor=f, interpolate=True, alpha = 0.3)
     
-#ax.set_title('Computational time vs. Error', fontsize = fs + 2)
-ax.set_xlabel('Time (Wall Clock)', fontsize = fs)
-ax.set_ylabel('Error', fontsize = fs)
+ax.set_xlabel('Time', labelpad = -20, position = (1.05, -1), fontsize = 20)
+ax.set_ylabel('Err', rotation = 0, labelpad = -50, position = (2., 1.05), fontsize = 20)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
-ax.legend(fontsize = fs-12, loc = 0)
+ax.legend(loc = 0)
 fig.savefig(plot_path + '/eps/err_vs_time.eps', dpi = 100)
 fig.savefig(plot_path + '/png/err_vs_time.png', dpi = 100)
 
 ###########################################################
-fig, ax = pl.subplots(figsize = (12, 10))
+fig, ax = pl.subplots()
 markers, colors = reset_markers()
 facecolor = reset_fc()
 
@@ -159,11 +158,11 @@ for num, k in enumerate(data.keys()):
         max_i = data[k]['iters_max'][n]
         ax.fill_between([min_i, val_i, max_i], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor = f, interpolate=True, alpha = 0.3)
         
-ax.set_title('Error vs. Iterations', fontsize = fs + 2)
-ax.set_xlabel('Iterations', fontsize = fs)
-ax.set_ylabel('Error', fontsize = fs)
+#ax.set_title('Error vs. Iterations')
+ax.set_xlabel('k', labelpad = -20, position = (1.08, -1), fontsize = 20)
+ax.set_ylabel('Err', rotation = 0, labelpad = -50, position = (2., 1.05), fontsize = 20)
 ax.grid(b = True, which = 'major')
 ax.tick_params(labelsize = 20)
-ax.legend(fontsize = fs-12, loc = 0)
+ax.legend(loc = 0)
 fig.savefig(plot_path + '/eps/err_vs_iter.eps', dpi = 100)
 fig.savefig(plot_path + '/png/err_vs_iter.png', dpi = 100)

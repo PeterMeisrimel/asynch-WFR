@@ -134,7 +134,6 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             if (np != 2)
                 MPI_Abort(MPI_COMM_WORLD, 1);
             if (new_relax_opt){
-            //std::cout << ID_SELF << " NEW RELAX WOOP WOOP" << std::endl; 
                 if (ID_SELF == 0)
                     wfr_method = new WFR_NEW_relax_opt(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging, w_relax_gs1);
                 else
