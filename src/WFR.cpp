@@ -9,56 +9,6 @@ January 2019
 #include <iomanip> // set precision
 #include "math.h" // sqrt
 
-void WFR_serial::set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax){
-    RELAX_0 = RELAX;
-    RELAX_1 = RELAX;
-    switch(conv_which){
-        case -1:{ // use ouput of first model (ID_SELF == 0) as measurement for convergence
-            WF_conv_check = WF_self;
-            WF_conv_check_last = WF_self_last;
-            if (match_which_conv_relax) // only relaxation on output of first model
-                RELAX_1 = false; // => deactivate relaxation for 1st processor
-            break;
-        }
-        case -2:{ // use ouput of second model (ID_SELF == 1) as measurement for convergence
-            WF_conv_check = WF_other;
-            WF_conv_check_last = WF_other_last;
-            if (match_which_conv_relax) // only relaxation on output of second model
-                RELAX_0 = false; // => deactive relaxation for 2nd processor
-            break;
-        }
-    }
-}
-
-void WFR_parallel::set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax){
-    switch(conv_which){
-        case -1:{ // use ouput of first model (ID_SELF == 0) as measurement for convergence
-            if (ID_SELF == 0){
-                WF_conv_check = WF_self;
-                WF_conv_check_last = WF_self_last;
-            }else{
-                WF_conv_check = WF_other;
-                WF_conv_check_last = WF_other_last;
-                if (match_which_conv_relax) // only relaxation for output of first model
-                    RELAX = false; // deactivate relaxation for ID_SELF == 1
-            }
-            break;   
-        }
-        case -2:{ // use ouput of second model (ID_SELF == 1) as measurement for convergence
-            if (ID_SELF == 0){
-                WF_conv_check = WF_other;
-                WF_conv_check_last = WF_other_last;
-                if (match_which_conv_relax) // only relaxation on output of second model
-                    RELAX = false; // => deactive relaxation for output of first model
-                }else{
-                    WF_conv_check = WF_self;
-                    WF_conv_check_last = WF_self_last;
-                }
-            break;
-        }
-    }
-}
-
 void WFR::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
     double t;
     if (RELAX){
@@ -109,14 +59,24 @@ void WFR::get_relative_tol(){
             rel_update_fac = sqrt(w_self*val0 + w_other*val1)*norm_factor;
             break;
         }
-        default:{
+        case -1:{ // 2-norm of output of first system, self on p0, other on p1
             double val;
-            if ((conv_which == -1) || (conv_which == -2)){
-                val = WF_conv_check -> get_norm_sq_last();
-                rel_update_fac = sqrt(val)*norm_factor;
-                break;
-            }else
-                throw std::invalid_argument("No method to check for convergence implemented for this input");
+            if (ID_SELF == 0)
+                val = WF_self -> get_norm_sq_last();
+            else
+                val = WF_other -> get_norm_sq_last();
+            rel_update_fac = sqrt(val)*norm_factor;
+        }
+        case -2:{ // 2-norm of output of first system, self on p0, other on p1
+            double val;
+            if (ID_SELF == 0)
+                val = WF_other -> get_norm_sq_last();
+            else
+                val = WF_self -> get_norm_sq_last();
+            rel_update_fac = sqrt(val)*norm_factor;
+        }
+        default:{
+            throw std::invalid_argument("No method to check for convergence implemented for this input");
         }
     }
 //    std::cout << "relative update factor " << rel_update_fac << std::endl;
@@ -127,6 +87,11 @@ bool WFR::check_convergence(double WF_TOL){
     if (first_iter){
         first_iter = false;
     }else{
+        // which norm to use for checking for convergence
+        // 0: normal 2 norm, 1 (default): weighted scaled norm
+        // negative for single check, defined via outputs
+        // -1: 2-norm of output of first system, self on p0, other on p1
+        // -2: 2-norm of output of second system, other on p0, self on p1
         switch(conv_which){
             case 0:{ // usual 2-norm
                 up_self  = WF_self ->get_err_norm_sq_last(WF_self_last);
@@ -142,13 +107,22 @@ bool WFR::check_convergence(double WF_TOL){
                 update   = sqrt(w_self*up_self + w_other*up_other)*norm_factor;
                 break;
             }
+            case -1:{ // 2-norm of output of first system, self on p0, other on p1
+                if (ID_SELF == 0)
+                    up_self = WF_self ->get_err_norm_sq_last(WF_self_last);
+                else
+                    up_self = WF_other->get_err_norm_sq_last(WF_other_last);
+                update = sqrt(up_self)*norm_factor;
+            }
+            case -2:{ // 2-norm of output of second system, other on p0, self on p1
+                if (ID_SELF == 0)
+                    up_self = WF_other->get_err_norm_sq_last(WF_other_last);
+                else
+                    up_self = WF_self ->get_err_norm_sq_last(WF_self_last);
+                update = sqrt(up_self)*norm_factor;
+            }
             default:{
-                if ((conv_which == -1) || (conv_which == -2)){
-                    up_self  = WF_conv_check -> get_err_norm_sq_last(WF_conv_check_last);
-                    update = sqrt(up_self)*norm_factor;
-                    break;
-                }else
-                    throw std::invalid_argument("No method to check for convergence implemented for this input");
+                throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
 //        std::cout << rel_update_fac << " update " << update << std::endl;

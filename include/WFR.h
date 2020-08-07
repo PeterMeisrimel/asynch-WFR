@@ -21,33 +21,53 @@ const int TAG_MISC = 5;
 #include <iostream>
 #include "mpi.h"
 
+/*
+General viewing point is to consider a problem by its in -and outputs (waveforms)
+as such SELF = output of own, OTHER = input
+
+for classical, constant splititng methods, relaxation is done on the sending end
+for NEW method, with variable splittings, relaxation is done on the receiving end
+
+termination check is done on both processes either way, use an output based notation here
+i.e., using only a single output for the termination check, we mark "2" as checking the output of second problem
+
+do relaxation, even if relaxation parameter might be one, for consistency?
+enable use of 2 different relaxation parameters, as to enable relaxation on only a single in/output
+=> pass single relaxation parameter into each run function, each for their own ouput
+=> new method, needs 3 input parameters
+exchange them via mpi calls
+
+=> need to eliminate "match relax to conv" parameter and replace with something more general and sensible
+*/
+
 class WFR{
 protected:
     double _t_end;
     Problem * prob_self;
 
     int np;
-    Waveform * WF_conv_check;
-    double * WF_conv_check_last;
 
     int       ID_SELF     ,  ID_OTHER;
     int       DIM_SELF    ,  DIM_OTHER;
     double   *u0_self     , *u0_other;
-    Waveform *WF_self     , *WF_other;  
+    Waveform *WF_self     , *WF_other;
     double   *WF_self_data, *WF_other_data;
     double   *WF_self_last, *WF_other_last;
     double   *times_self  , *times_other;
 
     // relaxation
+//    double theta_self, theta_other; // relaxation parameters
     bool RELAX;
     double w_relax;
     double * relax_aux_vec;
 
-    // termination criterion
+    // used in termination criterion
     bool first_iter;
     // which norm to use for checking for convergence
     // 0: normal 2 norm, 1 (default): weighted scaled norm
-    // -1: 2-norm of first system, -2: 2-norm of second system
+    // negative for single check, defined via outputs
+    // -1: 2-norm of output of first system, self on p0, other on p1
+    // -2: 2-norm of output of second system, other on p0, self on p1
     int conv_which, steps_converged, steps_converged_required;
 
     // for convergence checking
@@ -71,9 +91,8 @@ public:
         MPI_Comm_size(MPI_COMM_WORLD, &np);
     };
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
-                     int conv_check = 1, int steps_converged_in = 1, double w_relax = 1, bool match_which_conv_relax = false) = 0;
+                     int conv_check = 1, int steps_converged_in = 1, double w_relax = 1) = 0;
 
-    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax) = 0;
     virtual bool check_convergence(double WF_TOL);
     virtual void get_relative_tol();
 
@@ -97,7 +116,6 @@ public:
         ID_SELF = 0;
         ID_OTHER = 1;
     };
-    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
     void write_results();
 
     void init_error_log(int, int);
@@ -110,7 +128,6 @@ public:
         ID_SELF = id_in_self;
         ID_OTHER = id_in_other;
     };
-    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
     void write_results();
 
     void init_error_log(int, int);

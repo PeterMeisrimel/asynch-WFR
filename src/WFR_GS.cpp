@@ -21,7 +21,7 @@ WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first, bool errlog
     err_log_counter = 0;
 }
 
-void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
+void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
     conv_which = conv_check;
@@ -58,9 +58,7 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
     WF_self      = new Waveform(WF_LEN_SELF, DIM_SELF, times_self, WF_self_data);
     WF_self->set_last(u0_self);
 
-    if (RELAX){
-        relax_aux_vec = new double[DIM_SELF];
-    }
+    relax_aux_vec = new double[DIM_SELF];
     
     // initialize other waveform
     times_other = new double[WF_LEN_OTHER];
@@ -77,7 +75,6 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
     double window_length = _t_end/steps_macro;
 
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
-    set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
     MPI_Barrier(MPI_COMM_WORLD);
     runtime = MPI_Wtime(); // runtime measurement start
@@ -97,10 +94,10 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
             WF_self->init_by_last();
         }
 
-        
         get_relative_tol(); // get tolerance for relative update termination check
       
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
+        
         if(i != steps_macro - 1){
             WF_self ->time_shift(window_length);
             WF_other->time_shift(window_length);
@@ -117,7 +114,7 @@ void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_sel
     }
     for(int i = 0; i < WF_MAX_ITER; i++){ // WF iter loop
         WF_iters++;
-    
+        
         if (FIRST){
             RELAX = RELAX_0;
             integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
@@ -129,7 +126,7 @@ void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_sel
             RELAX = RELAX_0;
             integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
         }
-            
+        
         if (check_convergence(WF_TOL)){
             steps_converged++;
             if (steps_converged >= steps_converged_required) // sufficiently many steps registered convergence, stop

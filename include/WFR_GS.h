@@ -15,7 +15,7 @@ private:
 public:
     WFR_GS(double t_end, Problem * p1, Problem * p2, bool first, bool errlogging = false);
 
-    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param, bool match_which_conv_relax);
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param);
 };
 
 #endif // WFR_GS_H_

@@ -21,7 +21,7 @@ WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool
     err_log_counter = 0;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -73,7 +73,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
         times_other[i] = i*dt_other;
 	}
 
-	MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data, &WIN_data);
+    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data, &WIN_data);
     WF_other = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data, &WIN_data, ID_SELF);
     WF_other->set_last(u0_other);
 
@@ -81,33 +81,32 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
-    set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
     MPI_Barrier(MPI_COMM_WORLD);
-	runtime = MPI_Wtime(); // runtime measurement start
-	for(int i = 0; i < steps_macro; i++){ // Macro step loop
+    runtime = MPI_Wtime(); // runtime measurement start
+    for(int i = 0; i < steps_macro; i++){ // Macro step loop
         prob_self -> create_checkpoint();
         WF_self ->get_last(u0_self);
         WF_self ->set(0, u0_self);
-
+        
         WF_other->init_by_last();
-
+        
         get_relative_tol(); // get tolerance for relative update termination check
-
+        
         MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
         }
-	} // endfor macrostep loop
-	runtime = MPI_Wtime() - runtime; // runtime measurement end
+    } // endfor macrostep loop
+    runtime = MPI_Wtime() - runtime; // runtime measurement end
 
-	MPI_Win_free(&WIN_data);
+    MPI_Win_free(&WIN_data);
 }
 
 void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
-	first_iter = true;
+    first_iter = true;
 
     if (RELAX){
         WF_self->init_by_last(); // need a base for relaxation
@@ -192,35 +191,6 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 /////////////////////////////////
 // OPT RELAX TESTING
 /////////////////////////////////
-void WFR_NEW_relax_opt::set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax){
-    // important note: relaxation is now done at receiving end, RELAX flags will be opposite of previous case
-    switch(conv_which){
-        case -1:{ // use ouput of first model (ID_SELF == 0) as measurement for convergence
-            if (ID_SELF == 0){
-                WF_conv_check = WF_self;
-                WF_conv_check_last = WF_self_last;
-                if (match_which_conv_relax) // relaxation for output of first model, done in second model
-                    RELAX = false; // => deactivate relaxation in first model
-            }else{
-                WF_conv_check = WF_other;
-                WF_conv_check_last = WF_other_last;
-            }
-            break;   
-        }
-        case -2:{ // use ouput of second model (ID_SELF == 1) as measurement for convergence
-            if (ID_SELF == 0){
-                WF_conv_check = WF_other;
-                WF_conv_check_last = WF_other_last;
-            }else{
-                WF_conv_check = WF_self;
-                WF_conv_check_last = WF_self_last;
-                if (match_which_conv_relax) // relaxation of output of second model, done in first model
-                    RELAX = false; // => deactive relaxation in second model
-            }
-            break;
-        }
-    }
-}
 
 WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging){
     /*
@@ -231,7 +201,7 @@ WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double ten
     RELAX = true; 
 }
 
-void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
+void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -308,7 +278,6 @@ void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
 
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
-    set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
     
     MPI_Sendrecv(&w_relax_gs_other, 1, MPI_DOUBLE, ID_OTHER, TAG_MISC,
                  &w_relax_gs_self , 1, MPI_DOUBLE, ID_OTHER, TAG_MISC,

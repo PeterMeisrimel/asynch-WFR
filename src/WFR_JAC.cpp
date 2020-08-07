@@ -19,7 +19,7 @@ WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p, boo
     err_log_counter = 0;
 }
 
-void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
+void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -80,7 +80,6 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     double window_length = _t_end/steps_macro;
 
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
-    set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
     MPI_Barrier(MPI_COMM_WORLD);
     runtime = MPI_Wtime(); // runtime measurement start
