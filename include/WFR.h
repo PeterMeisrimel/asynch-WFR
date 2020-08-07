@@ -85,11 +85,6 @@ public:
     virtual void init_error_log(int steps_macro, int WF_MAX_ITER) = 0;
     virtual void update_error_log() = 0;
     virtual void write_error_log();
-
-    virtual void write_log(int a, int b){
-        if (ID_SELF == 0)
-            std::cout << "LOG NONE" << std::endl << "LOG NONE" << std::endl;
-    };
 };
 
 class WFR_serial: public WFR{

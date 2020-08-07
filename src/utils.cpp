@@ -16,7 +16,7 @@ January 2019
 
 void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end,
                     int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter,
-                    bool& FIRST, bool& error_logging, bool& comm_logging, int& nconv,
+                    bool& FIRST, bool& error_logging, int& nconv,
                     double &w_relax, bool &new_relax_opt, double &w_relax_jac,
                     double &w_relax_gs1, double &w_relax_gs2, bool &match_which_conv_relax){
     if (argc % 2 != 1){
@@ -52,8 +52,6 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double&
 			macrosteps = atoi(argv[i+1]);
 		else if (arg == "-maxiter")
 			maxiter = atoi(argv[i+1]);
-        else if (arg == "-commlog")
-            comm_logging = bool(atoi(argv[i+1]));
         else if (arg == "-first")
             FIRST = bool(atoi(argv[i+1]));
         else if (arg == "-errlog")
@@ -86,9 +84,8 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     ID_OTHER = (ID_SELF + 1)%np;
     
     // default init parameters
-    int runmode = 1;
+    int runmode = 1; // GS, JACOBI or NEW
     bool FIRST = true; // for GS
-    bool commlogging = false;
     bool errlogging = false;
     int steps_converged_required = 3;
     
@@ -96,8 +93,8 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     
     // default running parameters
     double WF_TOL = 1e-6;
-    int WF_MAXITER = 200;
-    int num_macro = 5;
+    int WF_MAXITER = 50;
+    int num_macro = 1;
     
     bool new_relax_opt = false; // new scheme only with relaxation parameters 
     double w_relax = 1, w_relax_jac = 1, w_relax_gs1 = 1, w_relax_gs2 = 1;
@@ -105,7 +102,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     bool match_which_conv_relax = true;
     
     process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST,
-                   errlogging, commlogging, steps_converged_required,
+                   errlogging, steps_converged_required,
                    w_relax, new_relax_opt, w_relax_jac, w_relax_gs1, w_relax_gs2, match_which_conv_relax);
     
     // parallel methods only get one problem as input, pick correct one if there are multiple processes
@@ -135,12 +132,12 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
                 MPI_Abort(MPI_COMM_WORLD, 1);
             if (new_relax_opt){
                 if (ID_SELF == 0)
-                    wfr_method = new WFR_NEW_relax_opt(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging, w_relax_gs1);
+                    wfr_method = new WFR_NEW_relax_opt(ID_SELF, ID_OTHER, t_end, prob, errlogging, w_relax_gs1);
                 else
-                    wfr_method = new WFR_NEW_relax_opt(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging, w_relax_gs2);
+                    wfr_method = new WFR_NEW_relax_opt(ID_SELF, ID_OTHER, t_end, prob, errlogging, w_relax_gs2);
                 w_relax = w_relax_jac;
             }else
-                wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging, commlogging);
+                wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging);
             break;
         }
         default:{

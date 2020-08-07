@@ -13,12 +13,10 @@ December 2018
 #include "unistd.h"
 #include <iostream>
 
-WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, bool commlogging) : WFR_parallel(id_in_self, id_in_other){
+WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging) : WFR_parallel(id_in_self, id_in_other){
     _t_end = tend;
     prob_self    = p;
     WF_iters = 0;
-    //log_pattern = commlogging;
-    log_pattern = false;
     log_errors = errlogging;
     err_log_counter = 0;
 }
@@ -79,16 +77,6 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_other = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data, &WIN_data, ID_SELF);
     WF_other->set_last(u0_other);
 
-    // if logging patterns, allocate necessary memory
-    /*
-    if (log_pattern){
-        log_p = 0;
-        log_m = 0;
-        iter_per_macro = new int[steps_macro];
-        comm_pattern = new bool[WF_MAX_ITER*steps_self];
-    }
-    */
-
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
@@ -139,12 +127,6 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_se
 
         if (check_convergence(WF_TOL)){ // convergence or maximum number of iterations reached
             steps_converged++;
-            /*
-            if (log_pattern){
-                iter_per_macro[log_m] = i+1;
-                log_m++;
-            }
-            */
             if (steps_converged >= steps_converged_required) // sufficiently many steps registered convergence, stop
                 break;
         }else{
@@ -177,12 +159,12 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 
             WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do interpol in place, relax_aux_vec being previous iterate at new timepoint
 
-		    msg_sent = i+1;
-          	// Send out new data to other process
-          	MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
+            msg_sent = i+1;
+            // Send out new data to other process
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
             // directly send relaxed value
             MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
-		    MPI_Win_unlock(ID_OTHER, WIN_data);
+            MPI_Win_unlock(ID_OTHER, WIN_data);
         }
     }else{
 	    for(int i = 0; i < steps; i++){ // timestepping loop
@@ -195,61 +177,15 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
             t = WF_self->get_time(i);
             dt = WF_self->get_time(i+1) - t;
             
-            // designed for implicit time_integration in current form
-            /// \todo figure out better method to accurately show percentage of new data being involved?
-            /*
-            if (log_pattern){
-                if (times_other[IDX] >= t + dt)
-                    comm_pattern[log_p] = 1;
-                else
-                    comm_pattern[log_p] = 0;
-                log_p++;
-            }
-            */
-            
             // actual timestep
             p->do_step(t, dt, (*WF_calc)[i+1], WF_src);
 
 		    msg_sent = i+1;
           	// Send out new data to other process
-          	MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
             MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
-		    MPI_Win_unlock(ID_OTHER, WIN_data);
+            MPI_Win_unlock(ID_OTHER, WIN_data);
         }
-    }
-}
-
-void WFR_NEW::write_log(int macro, int steps){
-    int log_size = log_p; 
-    int log_size_other = 0;
-    
-    MPI_Sendrecv(&log_size, 1, MPI_INT, ID_OTHER, 0,
-                 &log_size_other, 1, MPI_INT, ID_OTHER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    int timesteps = steps;
-    int timesteps_other = 0;
-
-    MPI_Sendrecv(&timesteps, 1, MPI_INT, ID_OTHER, 1,
-                 &timesteps_other, 1, MPI_INT, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    if(ID_SELF == 0){
-        std::cout << "LOG " << ID_SELF << " " << timesteps << " " << macro << " ";
-        for(int i = 0; i < macro; i++)
-            std::cout << iter_per_macro[i] << " ";
-        for(int i = 0; i < log_size; i++)
-            std::cout << comm_pattern[i] << " ";
-        std::cout << std::endl;
-
-        MPI_Recv(comm_pattern, log_size_other, MPI_C_BOOL, ID_OTHER, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        std::cout << "LOG " << ID_OTHER << " " << timesteps_other << " " << macro << " ";
-        for(int i = 0; i < macro; i++)
-            std::cout << iter_per_macro[i] << " ";
-        for(int i = 0; i < log_size_other; i++)
-            std::cout << comm_pattern[i] << " ";
-        std::cout << std::endl;
-    }else{ // ID_SELF == 1
-        MPI_Send(comm_pattern, log_size, MPI_C_BOOL, ID_OTHER, 2, MPI_COMM_WORLD);
     }
 }
 
@@ -286,7 +222,7 @@ void WFR_NEW_relax_opt::set_conv_check_WF_ptr(int conv_which, bool match_which_c
     }
 }
 
-WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, bool commlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging, commlogging){
+WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging){
     /*
     w_relax logic, a given problem would know what relax parameter it should take if it goes first,
     but relaxation is done at receiving end. Thus a given problem/process knows the relaxation parameter for the other problem
