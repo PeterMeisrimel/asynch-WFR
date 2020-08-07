@@ -16,7 +16,7 @@ January 2019
 
 void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double& t_end,
                     int& timesteps1, int& timesteps2, int& macrosteps, int& maxiter,
-                    bool& FIRST, bool& error_logging, int& nconv,
+                    bool& FIRST, bool& error_logging, int& nsteps_conv_check,
                     double &w_relax, bool &new_relax_opt, double &w_relax_jac,
                     double &w_relax_gs1, double &w_relax_gs2, bool &match_which_conv_relax){
     if (argc % 2 != 1){
@@ -56,8 +56,8 @@ void process_inputs(int argc, char **argv, int& runmode, double& WF_TOL, double&
             FIRST = bool(atoi(argv[i+1]));
         else if (arg == "-errlog")
             error_logging = bool(atoi(argv[i+1]));
-        else if (arg == "-nconv")
-            nconv = atoi(argv[i+1]);
+        else if (arg == "-nsteps_conv_check")
+            nsteps_conv_check = atoi(argv[i+1]);
         else if (arg == "-w_relax")
             w_relax = atof(argv[i+1]);
         else if (arg == "-new_relax_opt")
@@ -87,7 +87,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     int runmode = 1; // GS, JACOBI or NEW
     bool FIRST = true; // for GS
     bool errlogging = false;
-    int steps_converged_required = 3;
+    int nsteps_conv_check = 3;
     
     int timesteps1 = timesteps, timesteps2 = timesteps;
     
@@ -102,7 +102,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     bool match_which_conv_relax = true;
     
     process_inputs(argc, argv, runmode, WF_TOL, t_end, timesteps1, timesteps2, num_macro, WF_MAXITER, FIRST,
-                   errlogging, steps_converged_required,
+                   errlogging, nsteps_conv_check,
                    w_relax, new_relax_opt, w_relax_jac, w_relax_gs1, w_relax_gs2, match_which_conv_relax);
     
     // parallel methods only get one problem as input, pick correct one if there are multiple processes
@@ -146,7 +146,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         }
     }
     
-    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps1, timesteps2, which_conv, steps_converged_required, w_relax, match_which_conv_relax);
+    wfr_method -> run(WF_TOL, WF_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, w_relax, match_which_conv_relax);
 
     if (not errlogging){
         wfr_method -> write_results();

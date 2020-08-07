@@ -177,22 +177,21 @@ void WFR_parallel::write_results(){
     sol_size = prob_self->get_length();
     sol = new double[sol_size];
     WF_self -> get_last(sol);
-
+    
     MPI_Sendrecv(&sol_size, 1, MPI_INT, ID_OTHER, 0,
                  &sol_other_size, 1, MPI_INT, ID_OTHER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+    
     sol_other = new double[sol_other_size];
     MPI_Sendrecv(sol, sol_size, MPI_DOUBLE, ID_OTHER, 1,
                  sol_other, sol_other_size, MPI_DOUBLE, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+    
     runtime_self = get_runtime();
     runtime_other = 0;
     MPI_Sendrecv(&runtime_self,  1, MPI_DOUBLE, ID_OTHER, 2,
                  &runtime_other, 1, MPI_DOUBLE, ID_OTHER, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+    
     WFR::write_results();
 }
-
 
 void WFR::write_results(){
     iters = get_WF_iters();
@@ -249,7 +248,7 @@ void WFR_parallel::update_error_log(){
     }
 }
 
-// void WFR_serial::write_error_log() // not required
+// void WFR_serial::write_er ror_log() // not required
 
 void WFR_parallel::write_error_log(){
     if (log_errors){

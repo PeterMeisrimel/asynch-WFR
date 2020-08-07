@@ -21,10 +21,10 @@ WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool
     err_log_counter = 0;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param, bool match_which_conv_relax){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
     conv_which = conv_check;
     steps_converged = 0;
-    steps_converged_required = steps_converged_required_in;
+    steps_converged_required = nsteps_conv_check;
 
     w_relax = relax_param;
     if (w_relax == 1)
@@ -231,10 +231,10 @@ WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double ten
     RELAX = true; 
 }
 
-void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param, bool match_which_conv_relax){
+void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
     conv_which = conv_check;
     steps_converged = 0;
-    steps_converged_required = steps_converged_required_in;
+    steps_converged_required = nsteps_conv_check;
 
     w_relax_jac = relax_param;
 

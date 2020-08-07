@@ -19,10 +19,10 @@ WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p, boo
     err_log_counter = 0;
 }
 
-void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param, bool match_which_conv_relax){
+void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param, bool match_which_conv_relax){
     conv_which = conv_check;
     steps_converged = 0;
-    steps_converged_required = steps_converged_required_in;
+    steps_converged_required = nsteps_conv_check;
 
     w_relax = relax_param;
     if (w_relax == 1)
@@ -82,8 +82,8 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     set_conv_check_WF_ptr(conv_which, match_which_conv_relax);
 
-	MPI_Barrier(MPI_COMM_WORLD);
-	runtime = MPI_Wtime(); // runtime measurement start
+    MPI_Barrier(MPI_COMM_WORLD);
+    runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){
         prob_self->create_checkpoint();
         WF_self ->get_last(u0_self);
@@ -114,7 +114,7 @@ void WFR_JAC::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_se
         WF_iters++;
         
         integrate_window(WF_self, WF_other, steps_per_window_self, prob_self);
-	    MPI_Sendrecv(WF_self_data , (steps_per_window_self  + 1) * DIM_SELF , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
+        MPI_Sendrecv(WF_self_data , (steps_per_window_self  + 1) * DIM_SELF , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
                      WF_other_data, (steps_per_window_other + 1) * DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
