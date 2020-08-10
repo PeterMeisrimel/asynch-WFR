@@ -18,22 +18,31 @@ def split_and_float(f):
     a = [float(i) for i in f.split(' ')[:-1]]
     return a[0], a[1], a[2:]
 
-tol = 1e-6
-gridsize = 64
+tol = 1e-4
+gridsize = 32
 name = 'heat_{}'.format(gridsize)
+folder = 'heat_DN'
+exe = 'heat_DN'
 
-parameters = {'timesteps' : 20, 'macrosteps': 1, 'maxiter': 50, 'tend': 0.1,
-              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1, 'nconv': 3,
-              'w_relax_jac': 0.2, 'w_relax_gs': 0.2, 'times_only_new': 1, 'match_which_conv_relax': 1,
-              'new_relax_opt': 1}
+parameters = {'timesteps' : 20, 'macrosteps': 1, 'maxiter': 1000, 'tend': 0.1,
+              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1}
 
-path = run_tolerances('heat_DN', 'heat_DN', name, times = 1, tolerances = [tol, tol/100],
-                      parameters = parameters,
-                      runmodes = ['GS', 'JAC', 'JAC_TEST', 'NEW', 'NEW_TEST', 'JAC', 'GS'],
-                      run_names = ['GS', 'JAC', 'JAC_TEST', 'NEW', 'NEW_break', 'JAC_none', 'GS_none'],
-                      ref_run_name = 'GS',
-                      labels = ['GS', 'JAC', 'JAC_TEST', 'NEW', 'NEW_break', 'JAC_none', 'GS_none'],
-                      w_relax = [0.6, 0.2, 0.2, 1, 1, 1, 1])
+relax = {'theta_relax1': 1, 'theta_relax2': 1, # jacobi relax
+         'var_relax': 1,
+         'theta_relax_gs_a_1': 1, 'theta_relax_gs_a_2': 0.5, # 1->2 gs
+         'theta_relax_gs_b_1': 0.5, 'theta_relax_gs_b_2': 1  # 2->1 gs
+         }
+
+parameters.update(relax)
+
+path = run_tolerances(folder, exe, name, times = 1,
+                      tolerances = [tol, tol/100], parameters = parameters,
+                      runmodes = ['GS1', 'GS2', 'JAC', 'NEW'],
+                      run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
+                      ref_run_name = 'GS_DN',
+                      labels = ['GS DN', 'GS ND', 'JAC', 'NEW'])
+
+
 """ process data """
 results, dic = {}, {}
 with open(path + 'content.txt', 'r') as myfile:
@@ -137,3 +146,33 @@ ax.tick_params(labelsize = 20)
 ax.legend(fontsize = fs - 12, loc = 0)
 fig.savefig(plot_path + '/eps/error_vs_iters.eps', dpi = 100)
 fig.savefig(plot_path + '/png/error_vs_iters.png', dpi = 100)
+
+fig, ax = pl.subplots(figsize = (12, 10))
+markers, colors = reset_markers()
+
+c = next(colors); m = next(markers)
+ax.semilogy(range(int(data['GS_DN']['iters'])+1), data['GS_DN']['errs2'], label = 'GS-DN', marker = None, color = 'b')
+ax.semilogy(range(int(data['GS_ND']['iters'])+1), data['GS_ND']['errs2'], label = 'GS-ND', marker = None, color = 'r')
+"""
+DN = data['JAC']['errs2'][::2]
+ND = data['JAC']['errs2'][1::2]
+ax.scatter(range(1, len(ND)+1), ND, label = 'JAC ND', color = 'r')
+ax.scatter(range(len(DN)), DN, label = 'JAC DN', color = 'b')
+
+print('DN')
+for i in range(len(DN)):
+    print(abs(DN[i] - data['JAC']['errs2'][2*i]))
+    
+print('ND')
+for i in range(1, len(ND)):
+    print(abs(ND[i] - data['JAC']['errs2'][2*i+1]))
+
+    
+ax.set_xlabel('Iterations', fontsize = fs)
+ax.set_ylabel('Error', fontsize = fs)
+ax.grid(b = True, which = 'major')
+ax.tick_params(labelsize = 20)
+ax.legend(fontsize = fs - 12, loc = 0)
+fig.savefig(plot_path + '/eps/error_vs_iters_JAC.eps', dpi = 100)
+fig.savefig(plot_path + '/png/error_vs_iters_JAC.png', dpi = 100)
+"""

@@ -58,6 +58,7 @@ void WFR::get_relative_tol(){
             else
                 val = WF_other -> get_norm_sq_last();
             rel_update_fac = sqrt(val)*norm_factor;
+            break;
         }
         case -2:{ // 2-norm of output of first system, self on p0, other on p1
             double val;
@@ -66,6 +67,7 @@ void WFR::get_relative_tol(){
             else
                 val = WF_self -> get_norm_sq_last();
             rel_update_fac = sqrt(val)*norm_factor;
+            break;
         }
         default:{
             throw std::invalid_argument("No method to check for convergence implemented for this input");
@@ -105,6 +107,7 @@ bool WFR::check_convergence(double WF_TOL){
                 else
                     up_self = WF_other->get_err_norm_sq_last(WF_other_last);
                 update = sqrt(up_self)*norm_factor;
+                break;
             }
             case -2:{ // 2-norm of output of second system, other on p0, self on p1
                 if (ID_SELF == 0)
@@ -112,6 +115,7 @@ bool WFR::check_convergence(double WF_TOL){
                 else
                     up_self = WF_self ->get_err_norm_sq_last(WF_self_last);
                 update = sqrt(up_self)*norm_factor;
+                break;
             }
             default:{
                 throw std::invalid_argument("No method to check for convergence implemented for this input");

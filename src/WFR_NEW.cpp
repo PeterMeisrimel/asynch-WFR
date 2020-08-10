@@ -25,12 +25,6 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
 
-//    w_relax = 1;
-//    if (w_relax == 1)
-//        RELAX = false;
-//    else
-//        RELAX = true;
-
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
@@ -178,7 +172,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
-
+    
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
@@ -235,11 +229,11 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     // flags for when other process did GS relax
     relax_other_done_flag = new bool[WF_LEN_OTHER];
     for (int i = 1; i < WF_LEN_OTHER; i++)
-        relax_self_done_flag[i] = false;
+        relax_other_done_flag[i] = false;
     // flags for marking which entry already received relaxation (GS)
     relax_self_done_flag = new bool[WF_LEN_OTHER];
     for (int i = 1; i < WF_LEN_OTHER; i++)
-        relax_other_done_flag[i] = false;
+        relax_self_done_flag[i] = false;
     // flags for marking which entry already received relaxation (jac)
     relax_self_done_flag_jac = new bool[WF_LEN_OTHER];
     for (int i = 1; i < WF_LEN_OTHER; i++)
@@ -257,11 +251,8 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
         prob_self -> create_checkpoint();
         WF_self ->get_last(u0_self);
         WF_self ->set(0, u0_self);
-        
         WF_other->init_by_last();
-        
         get_relative_tol(); // get tolerance for relative update termination check
-        
         MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){

@@ -150,7 +150,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
                 MPI_Abort(MPI_COMM_WORLD, 1);
             wfr_method = new WFR_GS(t_end, prob1, prob2, true);
             
-            wfr_method -> set_relax_params(theta_relax1, theta_relax2);
+            wfr_method -> set_relax_params(theta_relax_a_1, theta_relax_a_2);
             break;
         }
         case 2:{ // Gauss-Seidel (GS), 2 -> 1 ordering
@@ -158,7 +158,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
                 MPI_Abort(MPI_COMM_WORLD, 1);
             wfr_method = new WFR_GS(t_end, prob1, prob2, false);
             
-            wfr_method -> set_relax_params(theta_relax1, theta_relax2);
+            wfr_method -> set_relax_params(theta_relax_b_1, theta_relax_b_2);
             break;
         }
         case 3:{ // Jacobi (JAC)

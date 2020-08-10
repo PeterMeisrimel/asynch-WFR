@@ -12,12 +12,33 @@ from postprocessing_cpp_output import process_output, delete_raw_data
 from produce_plotting_data import produce_plotting_data
 import subprocess
 
+from heat_relax_aux import get_parameters, heat_prob
+
 times = 1
 tolerances = [10**(-i) for i in range(6)]
 
-parameters = {'timesteps' : 40, 'macrosteps': 2, 'maxiter': 1000,
-              'gridsize': 32, 'alpha': 1, 'lambda': 0.1, 'tend': 0.2, 'u0': 2, 'nconv': 3}
-w_relax = 0.8
+heat_para = get_parameters('water_steel')
+
+parameters = {'timesteps' : 100, 'macrosteps': 1, 'maxiter': 50,
+              'gridsize': 32, 'tend': 10000, 'u0': 2,
+              'times_only_new': True, ## only let NEW method run <times> times
+              **heat_para}
+
+heat_relax_class = heat_prob(parameters['gridsize'], **heat_para)
+dt = parameters['tend']/parameters['timesteps']
+
+theta_gs = heat_relax_class.GS_theta_opt(dt, dt)
+theta_jac = heat_relax_class.JACOBI_theta_opt(dt, dt)
+
+relax = {'theta_relax1': theta_jac, 'theta_relax2': theta_jac, # jacobi relax
+         'var_relax': 1,
+         'theta_relax_gs_a_1': 1, 'theta_relax_gs_a_2': theta_gs, # 1->2 gs
+         'theta_relax_gs_b_1': theta_gs, 'theta_relax_gs_b_2': 1  # 2->1 gs
+         }
+
+parameters.update(relax)
+
+#w_relax = heat_relax_class.GS_theta_opt(dt, dt)
 
 print('Starting run...')
 print('times: ', times)
@@ -25,13 +46,11 @@ print('tolerances: ', tolerances)
 print('parameters: ', parameters)
 path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN', times = times,
                       tolerances = tolerances, parameters = parameters,
-                      runmodes = ['GS', 'GS', 'JAC', 'NEW'],
+                      runmodes = ['GS1', 'GS2', 'JAC', 'NEW'],
                       run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
-                      first = [True, False, False, False],
                       ref_run_name = 'GS_DN',
-                      labels = ['GS DN', 'GS ND', 'JAC', 'NEW'],
-                      w_relax = [w_relax]*4,
-                      times_only_new = True) ## relavant, only let new method run <times> times
+                      labels = ['GS DN', 'GS ND', 'JAC', 'NEW']
+                      )
 print('...processing output')
 process_output(path)
 print('...deleting raw data')
