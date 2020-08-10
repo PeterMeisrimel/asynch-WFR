@@ -13,15 +13,13 @@ December 2018
 #include "unistd.h"
 #include <iostream>
 
-WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging) : WFR_parallel(id_in_self, id_in_other){
+WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_parallel(id_in_self, id_in_other){
     _t_end = tend;
-    prob_self    = p;
+    prob_self = p;
     WF_iters = 0;
-    log_errors = errlogging;
-    err_log_counter = 0;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -77,6 +75,8 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_other = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data, &WIN_data, ID_SELF);
     WF_other->set_last(u0_other);
 
+    log_errors = errlogging;
+    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
@@ -192,7 +192,7 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 // OPT RELAX TESTING
 /////////////////////////////////
 
-WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging){
+WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p){
     /*
     w_relax logic, a given problem would know what relax parameter it should take if it goes first,
     but relaxation is done at receiving end. Thus a given problem/process knows the relaxation parameter for the other problem
@@ -201,7 +201,7 @@ WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double ten
     RELAX = true; 
 }
 
-void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
+void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -274,6 +274,8 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
         relax_self_done_flag_jac[i] = false;
     }
     
+    log_errors = errlogging;
+    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;

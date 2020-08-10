@@ -11,15 +11,13 @@ December 2018
 #include <stdexcept>
 #include <iostream>
 
-WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p, bool errlogging): WFR_parallel(id_in_self, id_in_other){
+WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p): WFR_parallel(id_in_self, id_in_other){
     _t_end    = t_end;
     prob_self = p;
     WF_iters = 0;
-    log_errors = errlogging;
-    err_log_counter = 0;
 }
 
-void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
+void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -75,6 +73,8 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_other      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data);
     WF_other->set_last(u0_other);
 
+    log_errors = errlogging;
+    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;

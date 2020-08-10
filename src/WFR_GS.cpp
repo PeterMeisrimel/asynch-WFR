@@ -11,17 +11,15 @@ December 2018
 #include <stdexcept>
 #include <iostream>
 
-WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first, bool errlogging) : WFR_serial(){
+WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first) : WFR_serial(){
     _t_end   = t_end;
     prob_self  = p1;
     prob_other = p2;
     FIRST    = first;
     WF_iters = 0;
-    log_errors = errlogging;
-    err_log_counter = 0;
 }
 
-void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
+void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
     conv_which = conv_check;
@@ -70,6 +68,8 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
     WF_other      = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data);
     WF_other->set_last(u0_other);
 
+    log_errors = errlogging;
+    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;

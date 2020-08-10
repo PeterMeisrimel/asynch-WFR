@@ -91,7 +91,7 @@ public:
         MPI_Comm_size(MPI_COMM_WORLD, &np);
     };
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
-                     int conv_check = 1, int steps_converged_in = 1, double w_relax = 1) = 0;
+                     int conv_check = 1, int steps_converged_in = 1, bool errorlogging = false, double w_relax = 1) = 0;
 
     virtual bool check_convergence(double WF_TOL);
     virtual void get_relative_tol();

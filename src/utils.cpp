@@ -148,19 +148,19 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         case 1:{ // Gauss-Seidel (GS), 1 -> 2 ordering
             if (np != 1)
                 MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_GS(t_end, prob1, prob2, true, errlogging);
+            wfr_method = new WFR_GS(t_end, prob1, prob2, true);
             break;
         }
         case 2:{ // Gauss-Seidel (GS), 2 -> 1 ordering
             if (np != 1)
                 MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_GS(t_end, prob1, prob2, false, errlogging);
+            wfr_method = new WFR_GS(t_end, prob1, prob2, false);
             break;
         }
         case 3:{ // Jacobi (JAC)
             if (np != 2)
                 MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob, errlogging);
+            wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
             break;
         }
         case 4:{ // NEW method, still needs better name
@@ -168,11 +168,11 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
                 MPI_Abort(MPI_COMM_WORLD, 1);
             if (var_relax){
                 if (ID_SELF == 0)
-                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, errlogging, theta_relax1);
+                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, theta_relax1);
                 else
-                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, errlogging, theta_relax2);
+                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, theta_relax2);
             }else
-                wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob, errlogging);
+                wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
             break;
         }
         default:{
@@ -181,7 +181,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         }
     }
     
-    wfr_method -> run(WF_TOL, WR_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, theta_relax1);
+    wfr_method -> run(WF_TOL, WR_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, errlogging, theta_relax1);
 
     if (not errlogging){
         wfr_method -> write_results();
