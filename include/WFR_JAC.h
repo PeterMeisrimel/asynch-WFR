@@ -15,7 +15,7 @@ private:
 public:
     WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p);
 
-    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging, double relax_param);
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
 #endif // WFR_JAC_H_

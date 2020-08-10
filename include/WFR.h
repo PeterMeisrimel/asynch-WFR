@@ -60,6 +60,8 @@ protected:
     bool RELAX;
     double w_relax;
     double * relax_aux_vec;
+    
+    double theta_relax;
 
     // used in termination criterion
     bool first_iter;
@@ -91,7 +93,10 @@ public:
         MPI_Comm_size(MPI_COMM_WORLD, &np);
     };
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
-                     int conv_check = 1, int steps_converged_in = 1, bool errorlogging = false, double w_relax = 1) = 0;
+                     int conv_check = 1, int steps_converged_in = 1, bool errorlogging = false) = 0;
+    virtual void set_relax_params(double t){theta_relax = t;};
+    virtual void set_relax_params(double, double){};
+    virtual void set_relax_params(double, double, double){};
 
     virtual bool check_convergence(double WF_TOL);
     virtual void get_relative_tol();
@@ -111,11 +116,18 @@ protected:
     Problem * prob_other;
     bool FIRST; // to define the ordering for coupling two problems, true = 1 -> 2 ordering
     bool RELAX_0, RELAX_1; // need more relaxation flags for possibility of only relaxing a single interface
+    
+    double theta_relax_self, theta_relax_other;
 public:
     WFR_serial() : WFR(){
         ID_SELF = 0;
         ID_OTHER = 1;
     };
+    virtual void set_relax_params(double t1, double t2){
+        theta_relax_self = t1;
+        theta_relax_other = t2;
+    };
+    
     void write_results();
 
     void init_error_log(int, int);

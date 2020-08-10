@@ -27,7 +27,7 @@ protected:
 public:
     WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p);
 
-    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging, double relax_param);
+    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
 class WFR_NEW_var_relax : public WFR_NEW{
@@ -36,6 +36,7 @@ private:
     // gs_self = own process is last, rationale: this step can be done mostly independent
     // gs_other = own process was first
     double w_relax_jac, w_relax_gs_self, w_relax_gs_other;
+    double theta_relax_gs_self, theta_relax_gs_other;
 
     bool * WF_other_data_recv_flag, * relax_self_done_flag, * relax_other_done_flag, * relax_self_done_flag_jac;
     MPI_Win WIN_recv_flag;
@@ -48,9 +49,15 @@ private:
 public:
 //    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
 
-    WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, double w_relax_gs = 1);
+    WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p);
+    
+    virtual void set_relax_params(double t1, double t2, double t3){
+        w_relax_jac = t1;
+        w_relax_gs_self = t2;
+        w_relax_gs_other = t3;
+    };
 
-    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging, double relax_param);
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
 #endif // WFR_NEW_H_

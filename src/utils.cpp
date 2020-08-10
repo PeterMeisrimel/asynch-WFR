@@ -149,30 +149,46 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             if (np != 1)
                 MPI_Abort(MPI_COMM_WORLD, 1);
             wfr_method = new WFR_GS(t_end, prob1, prob2, true);
+            
+            wfr_method -> set_relax_params(theta_relax1, theta_relax2);
             break;
         }
         case 2:{ // Gauss-Seidel (GS), 2 -> 1 ordering
             if (np != 1)
                 MPI_Abort(MPI_COMM_WORLD, 1);
             wfr_method = new WFR_GS(t_end, prob1, prob2, false);
+            
+            wfr_method -> set_relax_params(theta_relax1, theta_relax2);
             break;
         }
         case 3:{ // Jacobi (JAC)
             if (np != 2)
                 MPI_Abort(MPI_COMM_WORLD, 1);
             wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+            
+            if (ID_SELF == 0)
+                wfr_method -> set_relax_params(theta_relax1);
+            else
+                wfr_method -> set_relax_params(theta_relax2);
             break;
         }
         case 4:{ // NEW method, still needs better name
             if (np != 2)
                 MPI_Abort(MPI_COMM_WORLD, 1);
+            // variable relaxation
             if (var_relax){
+                wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob);
                 if (ID_SELF == 0)
-                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, theta_relax1);
+                    wfr_method -> set_relax_params(theta_relax1, theta_relax_a_1, theta_relax_b_1);
                 else
-                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob, theta_relax2);
-            }else
+                    wfr_method -> set_relax_params(theta_relax2, theta_relax_a_2, theta_relax_b_2);
+            }else{ // fixed relaxation
                 wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
+                if (ID_SELF == 0)
+                    wfr_method -> set_relax_params(theta_relax1);
+                else
+                    wfr_method -> set_relax_params(theta_relax2);
+            }
             break;
         }
         default:{
@@ -181,7 +197,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         }
     }
     
-    wfr_method -> run(WF_TOL, WR_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, errlogging, theta_relax1);
+    wfr_method -> run(WF_TOL, WR_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, errlogging);
 
     if (not errlogging){
         wfr_method -> write_results();

@@ -19,12 +19,12 @@ WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first) : WFR_seria
     WF_iters = 0;
 }
 
-void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
+void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
     conv_which = conv_check;
 
-    w_relax = relax_param;
+    w_relax = 1;
     if (w_relax == 1)
         RELAX = false;
     else

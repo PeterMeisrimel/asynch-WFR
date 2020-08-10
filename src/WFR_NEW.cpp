@@ -19,12 +19,12 @@ WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p) : WF
     WF_iters = 0;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
 
-    w_relax = relax_param;
+    w_relax = 1;
     if (w_relax == 1)
         RELAX = false;
     else
@@ -192,21 +192,22 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 // OPT RELAX TESTING
 /////////////////////////////////
 
-WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p){
+WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(id_in_self, id_in_other, tend, p){
     /*
     w_relax logic, a given problem would know what relax parameter it should take if it goes first,
     but relaxation is done at receiving end. Thus a given problem/process knows the relaxation parameter for the other problem
     */
-    w_relax_gs_other = w_relax_gs;
+//    w_relax_gs_other = theta_relax;
+    w_relax_gs_other = 1;
     RELAX = true; 
 }
 
-void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging, double relax_param){
+void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
 
-    w_relax_jac = relax_param;
+    w_relax_jac = 1;
 
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
