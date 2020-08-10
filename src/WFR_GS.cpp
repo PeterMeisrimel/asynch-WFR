@@ -19,16 +19,11 @@ WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first) : WFR_seria
     WF_iters = 0;
 }
 
-void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
+void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+                 int conv_check, int nsteps_conv_check, bool errlogging){
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
     conv_which = conv_check;
-
-    w_relax = 1;
-    if (w_relax == 1)
-        RELAX = false;
-    else
-        RELAX = true;
 
     DIM_SELF = prob_self->get_length();
     DIM_OTHER = prob_other->get_length();
@@ -69,7 +64,6 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
     WF_other->set_last(u0_other);
 
     log_errors = errlogging;
-    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
@@ -108,23 +102,19 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
 
 void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
     first_iter = true;
-    if (RELAX){
-        WF_other->init_by_last();
-        WF_self->init_by_last();
-    }
+    
+    WF_other->init_by_last();
+    WF_self->init_by_last();
+    
     for(int i = 0; i < WF_MAX_ITER; i++){ // WF iter loop
         WF_iters++;
         
         if (FIRST){
-            RELAX = RELAX_0;
-            integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
-            RELAX = RELAX_1;
-            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other);
+            integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax_self);
+            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other, theta_relax_other);
         }else{
-            RELAX = RELAX_1;
-            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other);
-            RELAX = RELAX_0;
-            integrate_window(WF_self , WF_other, steps_per_window_self , prob_self);
+            integrate_window(WF_other, WF_self , steps_per_window_other, prob_other, theta_relax_other);
+            integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax_self);
         }
         
         if (check_convergence(WF_TOL)){

@@ -18,7 +18,7 @@ protected:
     MPI_Win WIN_data;
 
     virtual void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other);
-    virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
+    virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);
 
     // for creating logs of communication patterns
     bool log_pattern;
@@ -27,7 +27,8 @@ protected:
 public:
     WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p);
 
-    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging);
+    virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+                     int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
 class WFR_NEW_var_relax : public WFR_NEW{
@@ -35,8 +36,7 @@ class WFR_NEW_var_relax : public WFR_NEW{
 private:
     // gs_self = own process is last, rationale: this step can be done mostly independent
     // gs_other = own process was first
-    double w_relax_jac, w_relax_gs_self, w_relax_gs_other;
-    double theta_relax_gs_self, theta_relax_gs_other;
+    double theta_relax_self_ahead, theta_relax_other_ahead;
 
     bool * WF_other_data_recv_flag, * relax_self_done_flag, * relax_other_done_flag, * relax_self_done_flag_jac;
     MPI_Win WIN_recv_flag;
@@ -52,12 +52,13 @@ public:
     WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p);
     
     virtual void set_relax_params(double t1, double t2, double t3){
-        w_relax_jac = t1;
-        w_relax_gs_self = t2;
-        w_relax_gs_other = t3;
+        theta_relax = t1; // jacobi (of other)
+        theta_relax_self_ahead = t2; // 
+        theta_relax_other_ahead = t3;
     };
 
-    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, bool errlogging);
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+             int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
 #endif // WFR_NEW_H_

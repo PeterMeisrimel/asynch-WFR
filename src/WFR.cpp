@@ -9,37 +9,29 @@ January 2019
 #include <iomanip> // set precision
 #include "math.h" // sqrt
 
-void WFR::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+void WFR::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p, double theta_relax){
     double t;
-    if (RELAX){
-        for(int i = 0; i < steps; i++){
-            t = WF_calc->get_time(i);
+    bool RELAX = (theta_relax != 1);
+    for(int i = 0; i < steps; i++){
+        t = WF_calc->get_time(i);
+        if (RELAX)
             WF_calc -> get(i+1, relax_aux_vec); // store previous iterate at new timepoint 
-            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
-            WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
-        }
-    }else{
-        for(int i = 0; i < steps; i++){
-            t = WF_calc->get_time(i);
-            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
-        }
+        p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
+        if (RELAX)
+            WF_calc -> relax_by_single(theta_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
     }
 }
 
-void WFR::integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+void WFR::integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p, double theta_relax){
     double t;
-    if (RELAX){
-        for(int i = start; i < start + steps; i++){
-            t = WF_calc->get_time(i);
+    bool RELAX = (theta_relax != 1);
+    for(int i = start; i < start + steps; i++){
+        t = WF_calc->get_time(i);
+        if (RELAX)
             WF_calc -> get(i+1, relax_aux_vec); // store previous iterate at new timepoint 
-            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
-            WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
-        }
-    }else{
-        for(int i = start; i < start + steps; i++){
-            t = WF_calc->get_time(i);
-            p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src);
-        }
+        p->do_step(t, WF_calc->get_time(i+1) - t, (*WF_calc)[i+1], WF_src); // overwrite previous iterate at new timepoint
+        if (RELAX)
+            WF_calc -> relax_by_single(theta_relax, i+1, relax_aux_vec); // do relaxation, relax_aux_vec being the old iterate
     }
 }
 
@@ -182,26 +174,28 @@ void WFR::write_results(){
     }
 }
 
-void WFR_serial::init_error_log(int steps_macro, int WF_MAX_ITER){
+void WFR_serial::init_error_log(int steps_macro, int WR_MAXITER){
+    err_log_counter = 0;
     if (log_errors){
         if (steps_macro != 1)
             MPI_Abort(MPI_COMM_WORLD, 2);
-        error_log = new double[(WF_MAX_ITER+1)*DIM_SELF];
+        error_log = new double[(WR_MAXITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
 
-        error_other_log = new double[(WF_MAX_ITER+1)*DIM_OTHER];
+        error_other_log = new double[(WR_MAXITER+1)*DIM_OTHER];
         WF_other -> get_last(error_other_log);
 
         err_log_counter++; // only one needed since error logging is based on macro steps rather than timesteps
     }
 }
 
-void WFR_parallel::init_error_log(int steps_macro, int WF_MAX_ITER){
+void WFR_parallel::init_error_log(int steps_macro, int WR_MAXITER){
+    err_log_counter = 0;
     if (log_errors){
         if (steps_macro != 1)
             MPI_Abort(MPI_COMM_WORLD, 2);
 
-        error_log = new double[(WF_MAX_ITER+1)*DIM_SELF];
+        error_log = new double[(WR_MAXITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
         err_log_counter++;
     }

@@ -178,10 +178,11 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             // variable relaxation
             if (var_relax){
                 wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob);
+                // relaxation parameters reversed here, since relaxation is done on the receiving end
                 if (ID_SELF == 0)
-                    wfr_method -> set_relax_params(theta_relax1, theta_relax_a_1, theta_relax_b_1);
-                else
                     wfr_method -> set_relax_params(theta_relax2, theta_relax_a_2, theta_relax_b_2);
+                else
+                    wfr_method -> set_relax_params(theta_relax1, theta_relax_a_1, theta_relax_b_1);
             }else{ // fixed relaxation
                 wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
                 if (ID_SELF == 0)

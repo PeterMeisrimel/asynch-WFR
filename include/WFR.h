@@ -27,17 +27,6 @@ as such SELF = output of own, OTHER = input
 
 for classical, constant splititng methods, relaxation is done on the sending end
 for NEW method, with variable splittings, relaxation is done on the receiving end
-
-termination check is done on both processes either way, use an output based notation here
-i.e., using only a single output for the termination check, we mark "2" as checking the output of second problem
-
-do relaxation, even if relaxation parameter might be one, for consistency?
-enable use of 2 different relaxation parameters, as to enable relaxation on only a single in/output
-=> pass single relaxation parameter into each run function, each for their own ouput
-=> new method, needs 3 input parameters
-exchange them via mpi calls
-
-=> need to eliminate "match relax to conv" parameter and replace with something more general and sensible
 */
 
 class WFR{
@@ -56,11 +45,7 @@ protected:
     double   *times_self  , *times_other;
 
     // relaxation
-//    double theta_self, theta_other; // relaxation parameters
-    bool RELAX;
-    double w_relax;
     double * relax_aux_vec;
-    
     double theta_relax;
 
     // used in termination criterion
@@ -86,8 +71,8 @@ protected:
     double * error_log, * error_other_log;
 
     virtual void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_self, int steps_other) = 0;
-    virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
-    virtual void integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
+    virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);
+    virtual void integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);
 public:
     WFR(){
         MPI_Comm_size(MPI_COMM_WORLD, &np);
@@ -115,8 +100,6 @@ class WFR_serial: public WFR{
 protected:
     Problem * prob_other;
     bool FIRST; // to define the ordering for coupling two problems, true = 1 -> 2 ordering
-    bool RELAX_0, RELAX_1; // need more relaxation flags for possibility of only relaxing a single interface
-    
     double theta_relax_self, theta_relax_other;
 public:
     WFR_serial() : WFR(){

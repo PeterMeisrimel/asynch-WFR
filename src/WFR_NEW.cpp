@@ -19,16 +19,17 @@ WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p) : WF
     WF_iters = 0;
 }
 
-void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
+void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+                  int conv_check, int nsteps_conv_check, bool errlogging){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
 
-    w_relax = 1;
-    if (w_relax == 1)
-        RELAX = false;
-    else
-        RELAX = true;
+//    w_relax = 1;
+//    if (w_relax == 1)
+//        RELAX = false;
+//    else
+//        RELAX = true;
 
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
@@ -57,8 +58,8 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_self      = new Waveform(WF_LEN_SELF, DIM_SELF, times_self, WF_self_data);
     WF_self->set_last(u0_self);
 
-    if (RELAX)
-        relax_aux_vec = new double[DIM_SELF];
+//    if (RELAX)
+    relax_aux_vec = new double[DIM_SELF];
 
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
@@ -76,7 +77,6 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     WF_other->set_last(u0_other);
 
     log_errors = errlogging;
-    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
@@ -108,15 +108,13 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
     first_iter = true;
 
-    if (RELAX){
-        WF_self->init_by_last(); // need a base for relaxation
-    }
+    WF_self->init_by_last(); // need a base for relaxation
 
     steps_converged = 0;
 	for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
         WF_iters++;
 
-        integrate_window(WF_self, WF_other, steps_per_window_self, prob_self);
+        integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax);
 
         // all outstanding RMA operations done up to this point
         MPI_Barrier(MPI_COMM_WORLD);
@@ -137,54 +135,35 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_se
     } // endfor waveform loop
 }
 
-void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p, double theta_relax){
     double t, dt;
+    bool RELAX = (theta_relax != 1);
     
-    if (RELAX){
-	    for(int i = 0; i < steps; i++){ // timestepping loop
-            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // excl since it involves writing
-            MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
-            MPI_Win_unlock(ID_SELF, WIN_data);
+    for(int i = 0; i < steps; i++){ // timestepping loop
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // excl since it involves writing
+        MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
+        MPI_Win_unlock(ID_SELF, WIN_data);
 
-            // make the choice of which waveform to choose from and use linear interpolation			
-            // i = number of steps done by own process
-            t = WF_self->get_time(i);
-            dt = WF_self->get_time(i+1) - t;
+        // make the choice of which waveform to choose from and use linear interpolation			
+        // i = number of steps done by own process
+        t = WF_self->get_time(i);
+        dt = WF_self->get_time(i+1) - t;
 
+        if (RELAX)
             WF_calc -> get(i+1, relax_aux_vec); // backup for self of new timestep
 
-            // actual timestep
-            p->do_step(t, dt, (*WF_calc)[i+1], WF_src); // do timestep, write into WF_self
+        // actual timestep
+        p->do_step(t, dt, (*WF_calc)[i+1], WF_src); // do timestep, write into WF_self
 
-            WF_calc -> relax_by_single(w_relax, i+1, relax_aux_vec); // do interpol in place, relax_aux_vec being previous iterate at new timepoint
+        if (RELAX)
+            WF_calc -> relax_by_single(theta_relax, i+1, relax_aux_vec); // do interpol in place, relax_aux_vec being previous iterate at new timepoint
 
-            msg_sent = i+1;
-            // Send out new data to other process
-            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
-            // directly send relaxed value
-            MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
-            MPI_Win_unlock(ID_OTHER, WIN_data);
-        }
-    }else{
-	    for(int i = 0; i < steps; i++){ // timestepping loop
-            MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
-            MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
-            MPI_Win_unlock(ID_SELF, WIN_data);
-
-            // make the choice of which waveform to choose from and use linear interpolation			
-            // i = number of steps done by own process
-            t = WF_self->get_time(i);
-            dt = WF_self->get_time(i+1) - t;
-            
-            // actual timestep
-            p->do_step(t, dt, (*WF_calc)[i+1], WF_src);
-
-		    msg_sent = i+1;
-          	// Send out new data to other process
-            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
-            MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
-            MPI_Win_unlock(ID_OTHER, WIN_data);
-        }
+        msg_sent = i+1;
+        // Send out new data to other process
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
+        // directly send relaxed value
+        MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
+        MPI_Win_unlock(ID_OTHER, WIN_data);
     }
 }
 
@@ -192,22 +171,13 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 // OPT RELAX TESTING
 /////////////////////////////////
 
-WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(id_in_self, id_in_other, tend, p){
-    /*
-    w_relax logic, a given problem would know what relax parameter it should take if it goes first,
-    but relaxation is done at receiving end. Thus a given problem/process knows the relaxation parameter for the other problem
-    */
-//    w_relax_gs_other = theta_relax;
-    w_relax_gs_other = 1;
-    RELAX = true; 
-}
+WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(id_in_self, id_in_other, tend, p){}
 
-void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, bool errlogging){
+void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, 
+                            int conv_check, int nsteps_conv_check, bool errlogging){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
-
-    w_relax_jac = 1;
 
     DIM_SELF = prob_self->get_length();
     // Get vectors length from other problem
@@ -219,40 +189,40 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     u0_self  = new double[DIM_SELF];
     u0_other = new double[DIM_OTHER];
     prob_self->get_u0(u0_self);
-
+    
     WF_self_last  = new double[DIM_SELF];
     WF_other_last = new double[DIM_OTHER];
-
+    
     int WF_LEN_SELF  = steps_self/steps_macro + 1;
     int WF_LEN_OTHER = steps_other/steps_macro + 1;
-
+    
     // initiliaze own waveform
     times_self = new double[WF_LEN_SELF];
     double dt_self = _t_end/steps_self;
     for (int i = 0; i < WF_LEN_SELF; i++)
         times_self[i] = i*dt_self;
-
+    
     WF_self_data = new double[WF_LEN_SELF * DIM_SELF];
     WF_self      = new Waveform(WF_LEN_SELF, DIM_SELF, times_self, WF_self_data);
     WF_self->set_last(u0_self);
-
+    
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  u0_other, DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+    
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
     for (int i = 0; i < WF_LEN_OTHER; i++)
         times_other[i] = i*dt_other;
-
+    
     // WF_other contains relaxed data, does not need to be in window now
     WF_other_data = new double[WF_LEN_OTHER*DIM_OTHER];
     WF_other = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data);
     WF_other -> set_last(u0_other);
 
     // Window & Waveform for receiving data
-	MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_recv_data, &WIN_data);
+    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_recv_data, &WIN_data);
     WF_recv = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data, &WIN_data, ID_SELF);
     // flags for which data has already been received
     MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_recv_flag, &WIN_recv_flag);
@@ -264,62 +234,50 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
 
     // flags for when other process did GS relax
     relax_other_done_flag = new bool[WF_LEN_OTHER];
+    for (int i = 1; i < WF_LEN_OTHER; i++)
+        relax_self_done_flag[i] = false;
     // flags for marking which entry already received relaxation (GS)
     relax_self_done_flag = new bool[WF_LEN_OTHER];
+    for (int i = 1; i < WF_LEN_OTHER; i++)
+        relax_other_done_flag[i] = false;
     // flags for marking which entry already received relaxation (jac)
     relax_self_done_flag_jac = new bool[WF_LEN_OTHER];
-    // init flags
-    for (int i = 1; i < WF_LEN_OTHER; i++){
-        relax_self_done_flag[i] = false;
-        relax_other_done_flag[i] = false;
+    for (int i = 1; i < WF_LEN_OTHER; i++)
         relax_self_done_flag_jac[i] = false;
-    }
     
     log_errors = errlogging;
-    err_log_counter = 0;
     init_error_log(steps_macro, WF_MAX_ITER);
 
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     
-    MPI_Sendrecv(&w_relax_gs_other, 1, MPI_DOUBLE, ID_OTHER, TAG_MISC,
-                 &w_relax_gs_self , 1, MPI_DOUBLE, ID_OTHER, TAG_MISC,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    // deactivate relaxation by setting all parameters to 1
-    if (not RELAX){
-        w_relax_gs_self = 1;
-        w_relax_gs_other = 1;
-        w_relax_jac = 1;
-    }
-    
     MPI_Barrier(MPI_COMM_WORLD);
-	runtime = MPI_Wtime(); // runtime measurement start
-	for(int i = 0; i < steps_macro; i++){ // Macro step loop
+    runtime = MPI_Wtime(); // runtime measurement start
+    for(int i = 0; i < steps_macro; i++){ // Macro step loop
         prob_self -> create_checkpoint();
         WF_self ->get_last(u0_self);
         WF_self ->set(0, u0_self);
-
+        
         WF_other->init_by_last();
-
+        
         get_relative_tol(); // get tolerance for relative update termination check
-
+        
         MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
         }
-	} // endfor macrostep loop
-	runtime = MPI_Wtime() - runtime; // runtime measurement end
+    } // endfor macrostep loop
+    runtime = MPI_Wtime() - runtime; // runtime measurement end
 
-	MPI_Win_free(&WIN_data);
+    MPI_Win_free(&WIN_data);
 }
 
 void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
-	first_iter = true;
+    first_iter = true;
     steps_converged = 0;
-	for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
+    for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
         MPI_Barrier(MPI_COMM_WORLD);
         WF_iters++;
 
@@ -348,11 +306,11 @@ void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
                 continue;
             }else{
                 if (relax_other_done_flag[i+1]){
-                    for (int j = 0; j < DIM_OTHER; j++)
-                        WF_other_data[(i+1)*DIM_OTHER + j] = (1 - w_relax_gs_other)*WF_other_data[(i+1)*DIM_OTHER + j] + w_relax_gs_other*WF_recv_data[(i+1)*DIM_OTHER + j];
+                    for (int j = 0; j < DIM_OTHER; j++) // self ahead
+                        WF_other_data[(i+1)*DIM_OTHER + j] = (1 - theta_relax_self_ahead)*WF_other_data[(i+1)*DIM_OTHER + j] + theta_relax_self_ahead*WF_recv_data[(i+1)*DIM_OTHER + j];
                 }else{
                     for (int j = 0; j < DIM_OTHER; j++)
-                        WF_other_data[(i+1)*DIM_OTHER + j] = (1 - w_relax_jac)*WF_other_data[(i+1)*DIM_OTHER + j] + w_relax_jac*WF_recv_data[(i+1)*DIM_OTHER + j];
+                        WF_other_data[(i+1)*DIM_OTHER + j] = (1 - theta_relax)*WF_other_data[(i+1)*DIM_OTHER + j] + theta_relax*WF_recv_data[(i+1)*DIM_OTHER + j];
                 }
             }
         }
@@ -364,10 +322,10 @@ void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
             WF_other_data_recv_flag[i+1] = false;
         MPI_Win_unlock(ID_SELF, WIN_recv_flag);
 
-        for (int i = 1; i < steps_per_window_other + 1; i++){
+        for (int i = 1; i < steps_per_window_other + 1; i++)
             relax_self_done_flag[i] = false;
+        for (int i = 1; i < steps_per_window_other + 1; i++)
             relax_self_done_flag_jac[i] = false;
-        }
 
         // since own data is discarded after each iteration over a given time-window, relaxation is only done at receiver on other
         // the exception is the convergence check, for which one need the relaxed data
@@ -409,8 +367,8 @@ void WFR_NEW_var_relax::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
             // other process is already done with corresponding (the one we are calculating right now) timestep, do GS relaxation, 
             // do relaxation, GS
             MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
-            for (int j = 0; j < DIM_OTHER; j++)
-                WF_other_data[(i+1)*DIM_OTHER + j] = (1 - w_relax_gs_self)*WF_other_data[(i+1)*DIM_OTHER + j] + w_relax_gs_self*WF_recv_data[(i+1)*DIM_OTHER + j];
+            for (int j = 0; j < DIM_OTHER; j++) // other process is ahead
+                WF_other_data[(i+1)*DIM_OTHER + j] = (1 - theta_relax_other_ahead)*WF_other_data[(i+1)*DIM_OTHER + j] + theta_relax_other_ahead*WF_recv_data[(i+1)*DIM_OTHER + j];
             MPI_Win_unlock(ID_SELF, WIN_data);
             relax_self_done_flag[i+1] = true; // mark timestep as relaxated via GS
 
@@ -418,27 +376,27 @@ void WFR_NEW_var_relax::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
             if (not relax_self_done_flag[i]){ // data not relaxed, but new values arrived in the meantime (during previous timestep)
                 MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
                 for (int j = 0; j < DIM_OTHER; j++)
-                    WF_other_data[i*DIM_OTHER + j] = (1 - w_relax_jac)*WF_other_data[i*DIM_OTHER + j] + w_relax_jac*WF_recv_data[i*DIM_OTHER + j];
+                    WF_other_data[i*DIM_OTHER + j] = (1 - theta_relax)*WF_other_data[i*DIM_OTHER + j] + theta_relax*WF_recv_data[i*DIM_OTHER + j];
                 MPI_Win_unlock(ID_SELF, WIN_data);
                 relax_self_done_flag_jac[i] = true;
             }
         }
         MPI_Win_unlock(ID_SELF, WIN_recv_flag);
-
+        
         // make the choice of which waveform to choose from and use linear interpolation			
         // i = number of steps done by own process
         t = WF_self->get_time(i);
         dt = WF_self->get_time(i+1) - t;
-
+        
         // actual timestep
         p->do_step(t, dt, (*WF_calc)[i+1], WF_other);
-
+        
         msg_sent = i+1;
         // Send out new data to other process
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_data);
         MPI_Put((*WF_self)[msg_sent], DIM_SELF, MPI_DOUBLE, ID_OTHER, DIM_SELF * msg_sent, DIM_SELF, MPI_DOUBLE, WIN_data);
         MPI_Win_unlock(ID_OTHER, WIN_data);
-
+        
         // Send flag for new data
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_OTHER, 0, WIN_recv_flag);
         MPI_Put(&TRUE_SEND, 1, MPI_C_BOOL, ID_OTHER, msg_sent, 1, MPI_C_BOOL, WIN_recv_flag);
