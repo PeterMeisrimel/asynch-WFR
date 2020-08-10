@@ -109,7 +109,7 @@ public:
 class WFR_serial: public WFR{
 protected:
     Problem * prob_other;
-    bool FIRST; // to define the ordering for coupling two problems
+    bool FIRST; // to define the ordering for coupling two problems, true = 1 -> 2 ordering
     bool RELAX_0, RELAX_1; // need more relaxation flags for possibility of only relaxing a single interface
 public:
     WFR_serial() : WFR(){

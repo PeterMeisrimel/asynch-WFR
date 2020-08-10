@@ -26,8 +26,8 @@ exe = 'TOY'
 
 parameters = {'timesteps' : 100, 'macrosteps': 1, 'maxiter': 200, 'errlog': 1, 'nsteps_conv_check': 3}
 path = run_tolerances(folder, exe, name, times = 1, tolerances = [tol, tol/100], parameters = parameters,
-                      runmodes = ['GS', 'GS', 'JAC', 'NEW'], run_names = ['GS_1', 'GS_2', 'JAC', 'NEW'],
-                      first = [True, False, False, False], ref_run_name = 'GS_1',
+                      runmodes = ['GS1', 'GS2', 'JAC', 'NEW'], run_names = ['GS_1', 'GS_2', 'JAC', 'NEW'],
+                      ref_run_name = 'GS_1',
                       labels = ['GS 1', 'GS 2', 'JAC', 'NEW'])
 """ process data """
 results, dic = {}, {}
