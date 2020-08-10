@@ -192,7 +192,7 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 // OPT RELAX TESTING
 /////////////////////////////////
 
-WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging){
+WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging, double w_relax_gs) : WFR_NEW(id_in_self, id_in_other, tend, p, errlogging){
     /*
     w_relax logic, a given problem would know what relax parameter it should take if it goes first,
     but relaxation is done at receiving end. Thus a given problem/process knows the relaxation parameter for the other problem
@@ -201,7 +201,7 @@ WFR_NEW_relax_opt::WFR_NEW_relax_opt(int id_in_self, int id_in_other, double ten
     RELAX = true; 
 }
 
-void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
+void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int nsteps_conv_check, double relax_param){
     conv_which = conv_check;
     steps_converged = 0;
     steps_converged_required = nsteps_conv_check;
@@ -313,7 +313,7 @@ void WFR_NEW_relax_opt::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
 	MPI_Win_free(&WIN_data);
 }
 
-void WFR_NEW_relax_opt::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
+void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
 	first_iter = true;
     steps_converged = 0;
 	for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
@@ -385,7 +385,7 @@ void WFR_NEW_relax_opt::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
     } // endfor waveform loop
 }
 
-void WFR_NEW_relax_opt::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
+void WFR_NEW_var_relax::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps, Problem * p){
     double t, dt;
 
 	for(int i = 0; i < steps; i++){ // timestepping loop

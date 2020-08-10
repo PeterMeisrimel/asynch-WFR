@@ -30,7 +30,7 @@ public:
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param);
 };
 
-class WFR_NEW_relax_opt : public WFR_NEW{
+class WFR_NEW_var_relax : public WFR_NEW{
 // check optimal relaxation stepwise, assumes same number of steps for both problems
 private:
     // gs_self = own process is last, rationale: this step can be done mostly independent
@@ -48,7 +48,7 @@ private:
 public:
 //    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
 
-    WFR_NEW_relax_opt(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging = false, double w_relax_gs = 1);
+    WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p, bool errlogging = false, double w_relax_gs = 1);
 
     void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, int conv_check, int steps_converged_required_in, double relax_param);
 };
