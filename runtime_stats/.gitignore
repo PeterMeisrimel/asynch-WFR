@@ -8,3 +8,4 @@ verify_order_*
 run_all_test.sh
 *.pyc
 *.log
+nohup.out

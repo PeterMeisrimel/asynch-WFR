@@ -12,7 +12,7 @@ from run_tolerances import run_tolerances
 from postprocessing_cpp_output import process_output, delete_raw_data
 from produce_plotting_data import produce_plotting_data
 
-times = 1
+times = 100
 tolerances = [10**(-i) for i in range(10)]
 parameters = {'timesteps' : 100, 'macrosteps': 1, 'maxiter': 200, 'nsteps_conv_check': 3}
 
@@ -35,5 +35,5 @@ print('...deleting raw data')
 print('...producing plotting data')
 produce_plotting_data(path)
 print('...plotting')
-subprocess.call('python3 plotting.py {}'.format(path), shell = True)
+subprocess.call('python3 plotting.py {} False'.format(path), shell = True)
 print('...done')

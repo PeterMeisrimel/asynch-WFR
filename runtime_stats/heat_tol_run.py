@@ -15,12 +15,13 @@ import subprocess
 from heat_relax_aux import get_parameters, heat_prob
 
 times = 1
-tolerances = [10**(-i) for i in range(6)]
+## need to use larger tol for air_steel, 11, 7 otherwise
+tolerances = [10**(-i) for i in range(11)]
 
-heat_para = get_parameters('water_steel')
+heat_para = get_parameters('air_steel')
 
-parameters = {'timesteps' : 100, 'macrosteps': 1, 'maxiter': 50,
-              'gridsize': 32, 'tend': 10000, 'u0': 2,
+parameters = {'timesteps' : 40, 'macrosteps': 1, 'maxiter': 50,
+              'gridsize': 512, 'tend': 10000, 'u0': 2,
               'times_only_new': True, ## only let NEW method run <times> times
               **heat_para}
 
@@ -38,14 +39,13 @@ relax = {'theta_relax1': theta_jac, 'theta_relax2': theta_jac, # jacobi relax
 
 parameters.update(relax)
 
-#w_relax = heat_relax_class.GS_theta_opt(dt, dt)
-
 print('Starting run...')
 print('times: ', times)
 print('tolerances: ', tolerances)
 print('parameters: ', parameters)
-path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN', times = times,
+path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN_air_steel', times = times,
                       tolerances = tolerances, parameters = parameters,
+                      run_prefix = 'nohup',
                       runmodes = ['GS1', 'GS2', 'JAC', 'NEW'],
                       run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
                       ref_run_name = 'GS_DN',

@@ -31,8 +31,8 @@ class Problem_heat_D(Problem_heat):
 		
     def get_flux(self):
         flux_sol = dol.assemble(self.F_flux)
-        self.flux_f.vector().set_local(flux_sol/self.dx)
-        return self.get_u_gamma(self.flux_f)
+        self.flux_f.vector().set_local(flux_sol)
+        return self.get_u_gamma(self.flux_f)/self.dx
     
     def do_step(self, dt, ug):
         self.dt.assign(dt)
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     
     ## verify dirichlet and neumann solvers on their own
     from verification_D_N import verify_time
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 128, 'xa': -2, 'xb': 1}
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 512, 'xa': -1, 'xb': 1}
 #    verify_time(Problem_heat_D, True, k = 8, order = 1, **pp, savefig = savefig)
 #    verify_time(Problem_heat_D, True, k = 8, order = 2, **pp, savefig = savefig)
     
@@ -96,35 +96,35 @@ if __name__ == '__main__':
 #    verify_time(Problem_heat_N, False, k = 6, order = 2, **pp, savefig = savefig)
     
     from verification_D_N import verify_space
-    pp = {'tf': 1., **get_parameters(), 'xa': -2, 'xb': 1}
+    pp = {'tf': 1., **get_parameters(), 'xa': -1, 'xb': 1}
     
 #    verify_space(Problem_heat_D, True, k = 6, order = 1, N_steps = 100, **pp, savefig = savefig)
-#    verify_space(Problem_heat_D, True, k = 8, order = 2, N_steps = 50, **pp, savefig = savefig)
+#    verify_space(Problem_heat_D, True, k = 6, order = 2, N_steps = 100, **pp, savefig = savefig)
     
 #    verify_space(Problem_heat_N, False, k = 8, order = 1, N_steps = 200, **pp, savefig = savefig)
 #    verify_space(Problem_heat_N, False, k = 8, order = 2, N_steps = 50, **pp, savefig = savefig)
     
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -2, 'xb': 1, 'theta': 0.5}
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 512, 'xa': -1, 'xb': 1, 'theta': 0.5}
     ## verify WR converges against monolithic solution
-#    verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
+#    verify_with_monolithic(solve_WR = solver, k = 6, order = 1, **pp, savefig = savefig)
 #    verify_with_monolithic(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
     
     ## verify combined error, splitting + time int for decreasing dt
 #    verify_comb_error(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
-#    verify_comb_error(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
+    verify_comb_error(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
     
     ## verify combined error, splitting + time int for decreasing dx
-    pp = {'tf': 1., **get_parameters(), 'xa': -2, 'xb': 1, 'theta': 0.5}
+    pp = {'tf': 1., **get_parameters(), 'xa': -1, 'xb': 1, 'theta': 0.5}
 #    verify_comb_error_space(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig, TOL = 1e-3, N_steps = 100)
 #    verify_comb_error_space(solve_WR = solver, k = 6, order = 2, **pp, savefig = savefig, TOL = 1e-6, N_steps = 50)
     
     ## verify convergence rate
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -2, 'xb': 1}
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -1, 'xb': 1}
 #    plot_theta(solve_WR = solver, savefig = savefig, order = 1, **pp)
 #    plot_theta(solve_WR = solver, savefig = savefig, order = 2, **pp)
     
     ## verify time-integration order with itself
     from verification import verify_self_time
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 16, 'xa': -2, 'xb': 1, 'theta': 0.5}
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 16, 'xa': -1, 'xb': 1, 'theta': 0.5}
 #    verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
 #    verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)

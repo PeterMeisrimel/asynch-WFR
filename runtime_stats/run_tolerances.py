@@ -12,9 +12,9 @@ import subprocess
 import datetime
 import json
 
-def run_tolerances(folder, exe, name, parameters, times = 10, # base inputs
-                       tolerances = None, run_names = None, runmodes = None, ref_run_name = None, # mandatory list based inputs
-                       **kwargs): # optional list based inputs
+def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', # base inputs
+                   tolerances = None, run_names = None, runmodes = None, ref_run_name = None, # mandatory list based inputs
+                   **kwargs): # optional list based inputs
     # name as in base name for output and such
     # non-list based inputs go into "parameters"
     # list based (optional) parameters go into **kwargs
@@ -54,7 +54,7 @@ def run_tolerances(folder, exe, name, parameters, times = 10, # base inputs
     out_files = {'files': []}
     
     import threading
-    shared_par = [folder, exe, output_dir, out_files, parameters, times, tolerances, ref_run_name]
+    shared_par = [folder, exe, output_dir, out_files, parameters, times, tolerances, ref_run_name, run_prefix]
     # SERIAL, 1 processor, 'GS' in runmode as indicator
     serial_kwargs = {'runmodes': [r for r in runmodes if 'GS' in r],
                      'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' in r]}
@@ -96,7 +96,7 @@ def run_tolerances(folder, exe, name, parameters, times = 10, # base inputs
     return output_dir + '/'
 
 def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times, tolerances,
-                          ref_run_name, num_proc, runmodes, run_names, **kwargs):
+                          ref_run_name, run_prefix, num_proc, runmodes, run_names, **kwargs):
     for i, tol in enumerate(tolerances):
         last = False
         parameters['wftol'] = tol
@@ -112,8 +112,8 @@ def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times,
             out_f = output_dir + '/' + str(run_names[j]) + '_' + str(tol) + '.txt'
             out_files['files'].append(out_f)
             
-            run_string = (f'mpirun -np {num_proc} -quiet ../src/{folder}/{exe} -runmode {r} {string_full} >> {out_f}\n')
-            #print(run_string)
+            run_string = (f'{run_prefix} mpirun -np {num_proc} -quiet ../src/{folder}/{exe} -runmode {r} {string_full} >> {out_f}\n')
+#            print(run_string)
             print(f'running {r} ({run_names[j]}) for tolerance of {tol}')
             for _ in range(times):
                 subprocess.call(run_string, shell = True)

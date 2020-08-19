@@ -25,6 +25,12 @@ def reset_fc():
 import sys
 path = sys.argv[1] # 0-th is filename
 
+# option to deactivate 
+plot_variances = True
+if len(sys.argv) == 3:
+    if sys.argv[2] == 'False':
+        plot_variances = False
+
 data = {}
 with open(path + 'plotting_data.txt', 'r') as myfile:
     data = json.load(myfile)
@@ -52,7 +58,7 @@ for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     pl.semilogx(data[k]['tols'], data[k]['iters_med'], label = data[k]['label'], marker = m, color = c)
-    if 'NEW' in k:
+    if plot_variances and ('NEW' in k):
         pl.semilogx(data[k]['tols'], data[k]['iters_min'], color = c)
         pl.semilogx(data[k]['tols'], data[k]['iters_max'], color = c)
         
@@ -76,7 +82,7 @@ for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     pl.semilogx(data[k]['tols'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
-    if 'NEW' in k:
+    if plot_variances and ('NEW' in k):
         pl.semilogx(data[k]['tols'], data[k]['errors2_min'], color = c)
         pl.semilogx(data[k]['tols'], data[k]['errors2_max'], color = c)
         
@@ -97,7 +103,7 @@ for num, k in enumerate(data.keys()):
     c = next(colors)
     m = next(markers)
     pl.loglog(data[k]['tols'], data[k]['times_med'], label = data[k]['label'], marker = m, color = c)
-    if 'NEW' in k:
+    if plot_variances and ('NEW' in k):
         pl.loglog(data[k]['tols'], data[k]['times_min'], color = c)
         pl.loglog(data[k]['tols'], data[k]['times_max'], color = c)
     
@@ -120,15 +126,16 @@ for num, k in enumerate(data.keys()):
     m = next(markers)
     f = next(facecolor)
     ax.loglog(data[k]['times_med'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
-    for n, t in enumerate(data[k]['times']):
-        val_t = data[k]['times_med'][n]
-        min_t = data[k]['times_min'][n]
-        max_t = data[k]['times_max'][n]
-        
-        val_e = data[k]['errors2_med'][n]
-        min_e = data[k]['errors2_min'][n]
-        max_e = data[k]['errors2_max'][n]
-        ax.fill_between([min_t, val_t, max_t], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor=f, interpolate=True, alpha = 0.3)
+    if plot_variances and ('NEW' in k):
+        for n, t in enumerate(data[k]['times']):
+            val_t = data[k]['times_med'][n]
+            min_t = data[k]['times_min'][n]
+            max_t = data[k]['times_max'][n]
+            
+            val_e = data[k]['errors2_med'][n]
+            min_e = data[k]['errors2_min'][n]
+            max_e = data[k]['errors2_max'][n]
+            ax.fill_between([min_t, val_t, max_t], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor=f, interpolate=True, alpha = 0.3)
     
 ax.set_xlabel('Time', labelpad = -20, position = (1.05, -1), fontsize = 20)
 ax.set_ylabel('Err', rotation = 0, labelpad = -50, position = (2., 1.05), fontsize = 20)
@@ -148,15 +155,16 @@ for num, k in enumerate(data.keys()):
     m = next(markers)
     f = next(facecolor)
     pl.semilogy(data[k]['iters_med'], data[k]['errors2_med'], label = data[k]['label'], marker = m, color = c)
-    for n, t in enumerate(data[k]['iters_med']):
-        val_e = data[k]['errors2_med'][n]
-        min_e = data[k]['errors2_min'][n]
-        max_e = data[k]['errors2_max'][n]
-        
-        val_i = data[k]['iters_med'][n]
-        min_i = data[k]['iters_min'][n]
-        max_i = data[k]['iters_max'][n]
-        ax.fill_between([min_i, val_i, max_i], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor = f, interpolate=True, alpha = 0.3)
+    if plot_variances and ('NEW' in k):
+        for n, t in enumerate(data[k]['iters_med']):
+            val_e = data[k]['errors2_med'][n]
+            min_e = data[k]['errors2_min'][n]
+            max_e = data[k]['errors2_max'][n]
+            
+            val_i = data[k]['iters_med'][n]
+            min_i = data[k]['iters_min'][n]
+            max_i = data[k]['iters_max'][n]
+            ax.fill_between([min_i, val_i, max_i], [val_e, max_e, val_e], [val_e, min_e, val_e], facecolor = f, interpolate=True, alpha = 0.3)
         
 #ax.set_title('Error vs. Iterations')
 ax.set_xlabel('k', labelpad = -20, position = (1.08, -1), fontsize = 20)
