@@ -17,7 +17,7 @@ import datetime
 pl.close('all')
 
 tol = 1e-10
-gridsize = 16
+gridsize = 32
 name = 'heat_{}'.format(gridsize)
 folder = 'heat_DN'
 exe = 'heat_DN'
@@ -36,10 +36,10 @@ out_files = {'files': []}
 print('Starting order verification run...')
 steps_list = [2**i for i in range(10)]
 for steps in steps_list:
-    parameters = {'timesteps' : steps, 'macrosteps': 1, 'maxiter': 1000,
+    parameters = {'timesteps' : steps, 'macrosteps': 1, 'maxiter': 100,
                   'gridsize': gridsize, 'alpha': 1, 'lambda': 0.01,
                   'runmode': 'GS', 'wftol': tol,
-                  'w_relax': 0.5, 'match_which_conv_relax': 1,
+                  'theta_relax_gs_a_1': 1, 'theta_relax_gs_a_2': 0.5,
                   'solvers': 0} ###################### SELECTS CPP SOLVER
     
     parameter_string = ' '.join(['-' + str(key) + ' ' + str(parameters[key]) for key in parameters.keys()])
@@ -49,7 +49,7 @@ for steps in steps_list:
     nproc = 2
     if parameters['runmode'] == 'GS':
         nproc = 1
-            
+    
     run_string = ('mpirun -np ' + str(nproc) + ' ../src/' + folder + '/' + exe + ' ' + parameter_string + 
                   ' >> ' + out_f + '\n')
     print('running with {} steps'.format(steps))

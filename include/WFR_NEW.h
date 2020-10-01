@@ -61,4 +61,53 @@ public:
              int conv_check, int steps_converged_required_in, bool errlogging);
 };
 
+#ifndef SHARED_GRID_TAGS_
+#define SHARED_GRID_TAGS_
+// flags used to mark which time-point belong to which grid
+// checked using bitwise and
+const int FLAG_GRID_SELF  = 1;
+const int FLAG_GRID_OTHER = 2;
+
+#endif // SHARED_GRID_TAGS_
+
+class WFR_NEW_var_relax_MR : public WFR_NEW{
+// check optimal relaxation stepwise, assumes same number of steps for both problems
+private:
+    // gs_self = own process is last, rationale: this step can be done mostly independent
+    // gs_other = own process was first
+    double theta_relax_self_ahead, theta_relax_other_ahead;
+    
+    bool * WF_other_data_recv_flag, * relax_self_done_flag, * relax_other_done_flag, * relax_self_done_flag_jac;
+    MPI_Win WIN_recv_flag;
+    double * WF_recv_data;
+    Waveform * WF_recv;
+    
+    double * relax_interpol_aux;
+    
+    int WF_LEN_SELF, WF_LEN_OTHER;
+    
+    int size_shared_grid;
+    double * times_shared;
+    int * times_shared_flags; // flags to mark which points belong to which grid
+    int * mapping_recv_to_shared;
+    int * mapping_self_to_shared;
+    
+    void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other);
+    void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p);
+    const bool TRUE_SEND = true;
+public:
+//    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
+
+    WFR_NEW_var_relax_MR(int id_in_self, int id_in_other, double tend, Problem * p);
+    
+    virtual void set_relax_params(double t1, double t2, double t3){
+        theta_relax = t1; // jacobi (of other)
+        theta_relax_self_ahead = t2; // 
+        theta_relax_other_ahead = t3;
+    };
+
+    void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
+             int conv_check, int steps_converged_required_in, bool errlogging);
+};
+
 #endif // WFR_NEW_H_

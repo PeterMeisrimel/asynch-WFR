@@ -13,7 +13,8 @@ September 2018
 #include "dolfin.h"
 #include "mpi.h"
 #include "heat.h" // generated from heat.cfl
-#include "heat_flux.h" // generated from heat_flux.cfl
+#include "heat_flux_grad.h" // generated from heat_flux_grad.cfl
+#include "heat_flux_weak.h" // generated from heat_flux_weak.cfl
 
 // Dirichlet part of a coupled heat equation
 // interface on right-hand side 
@@ -28,9 +29,11 @@ private:
     
     void get_flux(double*);
     
-    heat_flux::LinearForm * _heat_F;
+    heat_flux_grad::LinearForm * _heat_Flux_grad;
+    heat_flux_weak::LinearForm * _heat_Flux_weak;
     std::shared_ptr<dolfin::Function> _flux_function;
     dolfin::Vector * _flux_vec;
+    double * _flux_vec_old;
 public:
     // gridsize, alpha, lambda
     Problem_heat_D(int, double, double, int = 0);
@@ -38,6 +41,8 @@ public:
     void init_other(int);
     // t, dt, unew (out), WF
     void do_step(double, double, double *, Waveform *);
+    
+    void reset_to_checkpoint();
 };
 
 #endif //PROBLEM_HEAT_D_H_

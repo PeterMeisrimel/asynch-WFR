@@ -1,0 +1,14 @@
+# compile via   ffc -l dolfin heat_flux_weak.ufl
+# grid
+cell = triangle
+element = FiniteElement("Lagrange", cell, 1)
+
+unew = Coefficient(element)
+uold = Coefficient(element)
+v = TestFunction(element)
+
+lambda_diff = Constant(cell)
+alpha = Constant(cell)
+dt = Constant(cell)
+
+L = alpha*(unew - uold)/dt*v*dx + 0.5*lambda_diff*dot(grad(unew + uold), grad(v))*dx

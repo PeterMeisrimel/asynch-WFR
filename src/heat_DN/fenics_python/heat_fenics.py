@@ -118,8 +118,10 @@ class Problem_heat:
      
 def get_solve_WR(Problem_heat_D, Problem_heat_N):
     def solve_WR(tf, N1, N2, maxiter, TOL, th, Nx = None, Ny = None, dx = None, **kwargs):
-        xa = kwargs['xa']
-        xb = kwargs['xb']
+        xa = -1 if 'xa' not in kwargs.keys() else kwargs['xa']
+        xb = 1 if 'xb' not in kwargs.keys() else kwargs['xb']
+        if 'xb' not in kwargs.keys():
+            xb = 1
         if Nx is None: Nx = kwargs['gridsize'] + 1 ## nodes per unit length, - 1
         if Ny is None: Ny = kwargs['gridsize'] + 1 ## nodes per unit length, - 1
         if dx is None: dx = 1./(kwargs['gridsize'] + 1)
@@ -171,9 +173,9 @@ if __name__ == '__main__':
     from verification import get_parameters, verify_space_error, verify_mono_time
     savefig = 'mono_'
     ## verify space order of monolithic solution
-#    verify_space_error(1., k = 6, order = 2, **get_parameters(), xa = -2, xb = 1, savefig = savefig)
+    verify_space_error(1., k = 6, order = 2, **get_parameters(), xa = -2, xb = 1, savefig = savefig)
     
     ## verify time order with itself
     pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -2, 'xb': 1}
-#    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
-#    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)
+    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
+    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)

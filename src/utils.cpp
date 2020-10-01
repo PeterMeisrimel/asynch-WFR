@@ -23,7 +23,8 @@ void process_inputs(int argc, char **argv,
                     int& timesteps1, int& timesteps2,
                     int& runmode, int& macrosteps, int& maxiter, double& WF_TOL, bool& error_logging, int& nsteps_conv_check,
                     double &theta_relax1, double &theta_relax2,
-                    bool &var_relax,
+                    //bool &var_relax,
+                    int &var_relax,
                     double & theta_relax_gs_a_1, double & theta_relax_gs_a_2,
                     double & theta_relax_gs_b_1, double & theta_relax_gs_b_2){
     if (argc % 2 != 1){
@@ -79,7 +80,8 @@ void process_inputs(int argc, char **argv,
         }
 //        relaxation, variable splittings
         else if (arg == "-var_relax")
-            var_relax = bool(atoi(argv[i+1]));
+            var_relax = atoi(argv[i+1]);
+            //var_relax = bool(atoi(argv[i+1]));
 //        take previous parameters as jacobi relaxation parameters
 //        gs_a_n  a: 1 -> 2 ordering, n = 1 first problem, n = 2 second probem
         else if (arg == "-theta_relax_gs_a_1")
@@ -122,7 +124,8 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     
     double theta_relax1 = 1, theta_relax2 = 1; // basic ones for fixed splittings, jacobi for variable
     
-    bool var_relax = false; // new scheme only with relaxation parameters
+//    bool var_relax = false; // new scheme only with relaxation parameters
+    int var_relax = 0; // new scheme only with relaxation parameters
     double theta_relax_a_1 = 1, theta_relax_a_2 = 1; // gs 1->2 ordering
     double theta_relax_b_1 = 1, theta_relax_b_2 = 1; // gs 2->1 ordering
     
@@ -176,8 +179,12 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             if (np != 2)
                 MPI_Abort(MPI_COMM_WORLD, 1);
             // variable relaxation
-            if (var_relax){
-                wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob);
+//            if (var_relax){
+            if (var_relax > 0){
+                if (var_relax == 1)
+                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob);
+                else if (var_relax == 2)
+                    wfr_method = new WFR_NEW_var_relax_MR(ID_SELF, ID_OTHER, t_end, prob);
                 // relaxation parameters reversed here, since relaxation is done on the receiving end
                 if (ID_SELF == 0)
                     wfr_method -> set_relax_params(theta_relax2, theta_relax_a_2, theta_relax_b_2);
@@ -198,6 +205,12 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         }
     }
     
+    if (ID_SELF == 1){
+        int tmp = timesteps1;
+        timesteps1 = timesteps2;
+        timesteps2 = tmp;
+    }
+    
     wfr_method -> run(WF_TOL, WR_MAXITER, num_macro, timesteps1, timesteps2, which_conv, nsteps_conv_check, errlogging);
 
     if (not errlogging){
@@ -206,4 +219,16 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         MPI_Barrier(MPI_COMM_WORLD);
         wfr_method -> write_error_log();
     }
+}
+
+
+int lcm(int a, int b){
+    return a/gcd(a,b)*b;
+}
+
+int gcd(int a, int b){
+    if (b == 0)
+        return a;
+    else
+        return gcd(b, a%b);
 }

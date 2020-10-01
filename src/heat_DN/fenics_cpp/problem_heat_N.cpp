@@ -40,10 +40,18 @@ void Problem_heat_N::init_other(int len_other){
 void Problem_heat_N::do_step(double t, double dt, double * u_output, Waveform * WF_in){
     *_dt = dt;
     WF_in -> eval(t, _uother_old);
+//    std::cout << " N eval at t = " << t << std::endl;
+//    for (int i = 0; i < 32; i++)
+//        std::cout << _uother_old[i] << " ";
+//    std::cout << std::endl;
     _fluxx -> set_vals(get_uother_old_p());
     _rhs_fold -> interpolate(*_fluxx);
     
     WF_in -> eval(t + dt, _uother_new);
+//    std::cout << " N eval at t = " << t + dt << std::endl;
+//    for (int i = 0; i < 32; i++)
+//        std::cout << _uother_new[i] << " ";
+//    std::cout << std::endl;
     _fluxx -> set_vals(get_uother_new_p());
     _rhs_fnew -> interpolate(*_fluxx);
 

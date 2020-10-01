@@ -15,13 +15,10 @@ pl.rcParams['font.size'] = 18
 pl.rcParams['lines.markersize'] = 12
 
 def solve_exact(tf, Nx = None, Ny = None, dx = None, **kwargs):
-    print('solve exact')
     xa, xb = kwargs['xa'], kwargs['xb']
     if Nx is None: Nx = kwargs['gridsize'] + 1
     if Ny is None: Ny = kwargs['gridsize'] + 1
     if dx is None: dx = 1./(kwargs['gridsize'] + 1)
-    
-    print(xa, xb, Nx, Ny)
     
     prob = Problem_heat(**kwargs)
     prob.get_ex_sol(tf)
@@ -68,11 +65,14 @@ def verify_time(prob = None, D = True, tf = 1, k = 10, kmin = 0, order = 1, save
      
     dts = np.array(dts)
     pl.figure()
+    pl.title('time integration error')
     pl.loglog(dts, errs, label = 'err', marker = 'o')
     if D:
         pl.loglog(dts, errs_f, label = 'flux', marker = 'o')    
     pl.loglog(dts, dts, label = '1 st order', linestyle = '--')
     pl.loglog(dts, dts**2, label = '2 nd order', linestyle = '--')
+    pl.xlabel('dt', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.legend()
     pl.grid(True, which = 'major')
     if savefig is not None:
@@ -114,12 +114,15 @@ def verify_space(prob = None, D = True, tf = 1, N_steps = 100, k = 10, kmin = 0,
      
     dxs = np.array(dxs)
     pl.figure()
+    pl.title('space discretization error')
     pl.loglog(dxs, errs, label = 'err', marker = 'o')
     if D:
         pl.loglog(dxs, errs_f, label = 'flux', marker = 'o')    
     pl.loglog(dxs, dxs, label = '1 st order', linestyle = '--')
     pl.loglog(dxs, dxs**2, label = '2 nd order', linestyle = '--')
     pl.legend()
+    pl.xlabel('dx', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
     if savefig is not None:
         s = f'verify_space_ord_{order}_{D}.png'

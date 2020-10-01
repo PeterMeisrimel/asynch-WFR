@@ -16,7 +16,7 @@ pl.rcParams['lines.markersize'] = 12
 
 def get_parameters(which = 'test'):
     if which == 'test':
-        return {'alpha': 1., 'lambda_diff': 0.1}
+        return {'alpha': 1., 'lambda_diff': 0.01}
     else:
         return ValueError('invalid parameters')
     
@@ -48,9 +48,19 @@ def verify_space_error(tf = 1, n_min = 2, N_steps = 100, k = 8, savefig = None, 
     for n in n_list:
         # L2 factor for 2D case, inner points
         L2_fac = 1/(n + 1)
+        print('n', n, L2_fac)
+        
+        print('doing reference solution')
         ref = solve_exact(tf, gridsize = n, **kwargs)
+#        print('ref', ref, ref.shape)
+        
+        print('doing numerical solution')
         sol = solve_monolithic(tf, N_steps, gridsize = n, **kwargs)
+        
+#        print('sol', sol, sol.shape)
         errs.append(np.linalg.norm(ref - sol, 2)*L2_fac)
+        print('error', errs[-1])
+        
     for i in range(k-1):
         print(np.log2(errs[i]/errs[i+1]))
     
@@ -60,7 +70,8 @@ def verify_space_error(tf = 1, n_min = 2, N_steps = 100, k = 8, savefig = None, 
     pl.loglog(n_list, 1/n_list, label = '1st', linestyle = '--')
     pl.loglog(n_list, 1/(n_list**2), label = '2nd', linestyle = '--')
     pl.legend()
-    pl.xlabel('gridsize'); pl.ylabel('err')
+    pl.xlabel('gridsize', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
     pl.title('error in space')
     if savefig is not None:
@@ -86,9 +97,10 @@ def verify_mono_time(tf = 1, k = 5, savefig = None, **kwargs):
     pl.loglog(dts, dts, label = '1 st order', linestyle = '--')
     pl.loglog(dts, dts**2, label = '2 nd order', linestyle = '--')
     pl.legend()
-    pl.xlabel('dt'); pl.ylabel('Err')
+    pl.xlabel('dt', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
-    pl.title('time-integration error, monolithic')
+    pl.title('time-int error, monolithic')
     if savefig is not None:
         order = kwargs['order']
         s = f'mono_time_ord_{order}.png'
@@ -119,6 +131,19 @@ def verify_with_monolithic(solve_WR = None, tf = 1, N_steps = 20, k = 8, theta =
         order = kwargs['order']
         s = f'verify_mono_time_steps_{N_steps}_ord_{order}.png'
         pl.savefig(savefig + s, dpi = 100)
+    pl.figure()
+    pl.loglog(tols, errs, label = 'err', marker = 'o')
+    pl.loglog(tols, tols, label = '1 st order', linestyle = '--')
+    pl.loglog(tols, tols**2, label = '2 nd order', linestyle = '--')
+    pl.title('Verify with mono. solution')
+    pl.legend()
+    pl.xlabel('TOL', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
+    pl.grid(True, which = 'major')
+    if savefig is not None:
+        order = kwargs['order']
+        s = f'verify_mono_time_steps_{N_steps}_ord_{order}.png'
+        pl.savefig(savefig + s, dpi = 100)
         
 def verify_comb_error(solve_WR = None, tf = 1, k = 10, kmin = 0, theta = 1, order = 1, savefig = None, maxiter = 100, **kwargs):
     ## sum of splitting and time-integration order
@@ -142,7 +167,8 @@ def verify_comb_error(solve_WR = None, tf = 1, k = 10, kmin = 0, theta = 1, orde
     pl.loglog(dts, dts**2, label = '2 nd order', linestyle = '--')
     pl.legend()
     pl.title('Splitting + time int error test')
-    pl.xlabel('dt'); pl.ylabel('Err')
+    pl.xlabel('dt', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
     if savefig is not None:
         s = f'verify_comb_error_ord_{order}.png'
@@ -166,7 +192,9 @@ def verify_comb_error_space(solve_WR = None, tf = 1, N_steps = 100, k = 10, kmin
     pl.loglog(dxs, dxs, label = '1 st order', linestyle = '--')
     pl.loglog(dxs, dxs**2, label = '2 nd order', linestyle = '--')
     pl.legend()
-    pl.xlabel('dx'); pl.ylabel('Err')
+    pl.title('Splitting + time int error test')
+    pl.xlabel('dx', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
     if savefig is not None:
         s = f'verify_comb_error_space_ord_{order}.png'
@@ -201,7 +229,9 @@ def verify_self_time(solve_WR = None, tf = 1, k = 10, kmin = 0, theta = 1, order
     pl.loglog(dts, dts, label = '1 st order', linestyle = '--')
     pl.loglog(dts, dts**2, label = '2 nd order', linestyle = '--')
     pl.legend()
-    pl.xlabel('dt'); pl.ylabel('Err')
+    pl.title('WR Err w.r.t. fine solution')
+    pl.xlabel('dt', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
     pl.grid(True, which = 'major')
     if savefig is not None:
         s = f'verify_self_time_ord_{order}.png'
@@ -218,7 +248,9 @@ def plot_theta(solve_WR = None, tf = 1, N_steps = 50, order = 1, savefig = None,
         
     pl.figure()
     pl.plot(thetas, rates, label = 'rate')
-    pl.legend()
+    pl.title('Conv rate over Theta')
+    pl.xlabel('Theta', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Rate', position = (2., 1.05), labelpad = -50, rotation = 0)
     if savefig is not None:
         s = f'rates_ord_{order}.png'
         pl.savefig(savefig  + s, dpi = 100)

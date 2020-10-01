@@ -14,15 +14,23 @@ import subprocess
 
 from heat_relax_aux import get_parameters, heat_prob
 
-times = 1
+times = 5
 ## need to use larger tol for air_steel, 11, 7 otherwise
-tolerances = [10**(-i) for i in range(11)]
+#tolerances = [10**(-i) for i in range(11)]
+#heat_para = get_parameters('air_steel')
 
-heat_para = get_parameters('air_steel')
+#tolerances = [10**(-i) for i in range(11)]
+#which = 'air_steel'
+#heat_para = get_parameters(which)
+
+tolerances = [10**(-i) for i in range(6)]
+which = 'test'
+heat_para = get_parameters(which)
 
 parameters = {'timesteps' : 40, 'macrosteps': 1, 'maxiter': 50,
-              'gridsize': 512, 'tend': 10000, 'u0': 2,
+              'gridsize': 32, 'tend': 10000, 'u0': 2,
               'times_only_new': True, ## only let NEW method run <times> times
+              'nsteps_conv_check': 1, ## steps below tolerance for convergence check
               **heat_para}
 
 heat_relax_class = heat_prob(parameters['gridsize'], **heat_para)
@@ -43,13 +51,23 @@ print('Starting run...')
 print('times: ', times)
 print('tolerances: ', tolerances)
 print('parameters: ', parameters)
-path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN_air_steel', times = times,
+#path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN_{}'.format(which), times = times,
+#                      tolerances = tolerances, parameters = parameters,
+##                      run_prefix = 'nohup',
+#                      runmodes = ['GS1', 'GS2', 'JAC', 'NEW', 'NEW', 'NEW'],
+#                      run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW0', 'NEW1', 'NEW2'],
+#                      ref_run_name = 'GS_DN',
+#                      labels = ['GS_DN', 'GS_ND', 'JAC', 'NEW0', 'NEW1', 'NEW2'],
+#                      var_relax = [0, 0, 0, 0, 1, 2]
+#                      )
+path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN_{}'.format(which), times = times,
                       tolerances = tolerances, parameters = parameters,
-                      run_prefix = 'nohup',
-                      runmodes = ['GS1', 'GS2', 'JAC', 'NEW'],
-                      run_names = ['GS_DN', 'GS_ND', 'JAC', 'NEW'],
+#                      run_prefix = 'nohup',
+                      runmodes = ['GS1', 'NEW'],
+                      run_names = ['GS_DN', 'NEW2'],
                       ref_run_name = 'GS_DN',
-                      labels = ['GS DN', 'GS ND', 'JAC', 'NEW']
+                      labels = ['GS_DN', 'NEW2'],
+                      var_relax = [0, 2]
                       )
 print('...processing output')
 process_output(path)

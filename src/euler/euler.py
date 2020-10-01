@@ -9,11 +9,9 @@ https://www.dune-project.org/sphinx/content/sphinx/dune-fem/euler_nb.html (May 2
 ## Euler System of Gas Dynamics
 
 import numpy as np
-import matplotlib
-matplotlib.rc('image', cmap = 'jet')
 import ufl
 from dune.grid import reader
-from dune.fem.space import finiteVolume
+from dune.fem.space import dgonb
 from dune.femdg import femDGOperator
 from dune.femdg.rk import femdgStepper
 from dune.alugrid import aluSimplexGrid as simplexGrid
@@ -124,15 +122,11 @@ class Model:
         self.eps = 1e-13
         self.x = ufl.SpatialCoordinate(ufl.triangle)
         # ufl.conditional(cond, True, False)
-        ## it doesn't like the ufl.And?
-#        self.u0 = ufl.conditional(ufl.And(ufl.And(ufl.le(self.x[1], -1 + self.eps),
-#                                  ufl.ge(self.x[0], -0.5 - self.eps)),
-#                                  ufl.le(self.x[0], 0.5 + self.eps)), ## condition for lower boundary
-#                                  ufl.as_vector([self.rho0, self.vx0, self.vy0, self.E0]), 
-#                                  ufl.as_vector([self.rho0, self.vx0, self.vy0, self.E1]))
         self.u0 = ufl.conditional(ufl.le(self.x[1], -1 + self.eps), ## condition for lower boundary
                           ufl.as_vector([self.rho0, self.vx0, self.vy0, self.E1]), 
                           ufl.as_vector([self.rho0, self.vx0, self.vy0, self.E0]))
+        
+        self.n_q = Constant((0., -1.))
                 
     # helper function
     def toPrim(self, U):
@@ -173,7 +167,7 @@ class Model:
     
     def set_temp(self, T, U):
         rho, v, p = self.toPrim(U)
-        return (rho, rho*v[0], 0, rho*(self.R*(self.gamma - 1)*T + 0.5*v[0]*v[0]))
+        return ufl.as_vector((U[0], U[1], 0, rho*(self.R*(self.gamma - 1)*T + 0.5*v[0]*v[0])))
     
 ## TODO
 """
@@ -189,7 +183,7 @@ class EulerSolver:
         
         self.domain = (reader.dgf, "triangle.dgf") ## read domain specifications from file
         self.gridView = simplexGrid(self.domain, dimgrid = 2) ## grid with triangles, using alugrid module
-        self.space = finiteVolume(self.gridView, dimRange = 4) ## solution space
+        self.space = dgonb(self.gridView, dimRange = 4)
         self.uh = self.space.interpolate(self.Model.u0, name = "solution")
         
         self.uh_boundary = self.space.interpolate((self.Model.rho0, self.Model.vx0, self.Model.vy0, self.Model.E1), name = "uh_bd")
@@ -201,62 +195,40 @@ class EulerSolver:
         self.operator.applyLimiter(self.uh)
         
         ## flux computation
-        ## can one write it like this, i.e., the self.Model.temp(self.uh) ? 
         self.n_q = Constant((0., -1.))
-#        self.heat_flux = expression2GF(self.uh.space.grid, ufl.dot(ufl.grad(self.Model.temp(self.uh)), self.n_q), self.uh.space.order)
-        self.heat_flux = expression2GF(self.uh.space.grid, ufl.grad(self.Model.temp(self.uh)), self.uh.space.order)
+        self.heat_flux = expression2GF(self.uh.space.grid, 
+                                       ufl.dot(ufl.grad(self.Model.temp(self.uh)), self.n_q), 
+                                       self.uh.space.order)
         
-        ## evaluation of rho and v_x at interface
-        self.n_rho = Constant((1, 0, 0, 0))
-        self.eval_rho = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.n_rho), self.uh.space.order)
-        self.n_vx = Constant((0, 1, 0, 0))
-        self.eval_vx = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.n_vx), self.uh.space.order)
-        
-#        self.normal = Constant((1., 0., 0., 0.))
-#        self.flux_grad = expression2GF(self.uh.space.grid, ufl.dot(self.uh, self.normal), self.uh.space.order)
-        self.NN = 10 # number of sampling points?
+        self.NN = 32 # number of sampling points
         self.sample_points = np.linspace(-0.5, 0.5, self.NN) ## bottom boundary line
         self.f_sample = lambda x: lineSample(x, [-0.5, -1], [0.5, -1], self.NN)[1] ## sampling function for boundary[5], the interface
         
-        self.tmp_fac = self.Model.R*(self.Model.gamma-1)
-    
+        self.intf_rho_eval = expression2GF(self.uh.space.grid, ufl.dot(self.uh, Constant((1, 0, 0, 0))), self.uh.space.order)
+        self.intf_rho_vx_eval = expression2GF(self.uh.space.grid, ufl.dot(self.uh, Constant((0, 1, 0, 0))), self.uh.space.order)
+        self.temp_fac = Constant(self.Model.R*(self.Model.gamma - 1))
+        
     def get_flux(self):
         return self.f_sample(self.heat_flux)
     
     def set_intf_temp(self, temps):
-#        intp = interp1d(self.sample_points, temps, fill_value = 'extrapolate')
-#        ff = lambda x: (self.Model.rho0, self.Model.vx0, self.Model.vy0, intp(x[0]))
-#        self.uh_boundary.interpolate(ff)
-#        rho = self.f_sample(self.eval_rho)
-#        vx = self.f_sample(self.eval_vx)/rho
-#        intp = interp1d(self.sample_points,
-#                        (rho, rho*vx, np.zeros(self.NN), rho*(self.tmp_fac*temps + 0.5*vx**2)),
-#                        axis = 1, fill_value = 'extrapolate')
-#        self.uh_boundary.interpolate(lambda x: intp(x[0]))
+        intp_temp = interp1d(self.sample_points, temps, fill_value = 'extrapolate')
+        intp_rho = interp1d(self.sample_points, self.f_sample(self.intf_rho_eval), fill_value = 'extrapolate')
+        intp_rho_vx = interp1d(self.sample_points, self.f_sample(self.intf_rho_vx_eval), fill_value = 'extrapolate')
         
-#        rho = self.f_sample(self.eval_rho)
-#        vx = self.f_sample(self.eval_vx)/rho
-        intp = interp1d(self.sample_points, temps, fill_value = 'extrapolate')
-        self.uh_boundary.interpolate(lambda x: (self.Model.rho0, self.Model.vx0, 0, intp(x[0])))
-#        def f(x, U):
-#            r = U(x)
-#            return (r[0], r[1], 0, r[0]*(self.Model.R*(self.Model.gamma-1)*intp(x[0]) + 0.5*(r[1]/r[0])**2))
-#        self.uh_boundary.interpolate(lambda x: f(x, self.uh_boundary))
-#        self.uh_boundary.interpolate(lambda x: self.Model.set_temp(intp(x[0]), self.uh_boundary))
+        def f(x):
+            rho = intp_rho(x)
+            vx = intp_rho_vx(x)
+            return (rho, vx, 0, rho*(self.temp_fac*intp_temp(x) + 0.5*vx**2/rho))
         
+        self.uh_boundary.interpolate(lambda x: f(x[0]))
         
-    ## variable "i" is for plotting purposes only
     def do_step(self, t, dt):
         self.operator.setTime(t)
         
-#        vals = np.ones(self.NN)*(1 - self.t*90)*self.Model.E1
-        if t < 0.005:
-            vals = np.ones(self.NN)*self.Model.E1
-        else:
-            vals = np.ones(self.NN)*self.Model.E0
+        vals = np.ones(self.NN)*(1 - self.t*90)*self.Model.T1
         self.set_intf_temp(vals)
         
-#        print('boundary set')
         self.t += self.stepper(self.uh, dt = dt)
             
     def solve(self, tf, n):
@@ -266,11 +238,9 @@ class EulerSolver:
             print('doing step', self.t, dt, flush = True)
             self.do_step(self.t, dt)
             
-#            print('timestep done, writing')
+            print('boundary heat flux :', self.get_flux())
+            
             self.gridView.writeVTK('solution', pointdata={'solution': self.uh, 'T': self.Model.temp(self.uh)}, number = i)
-#            self.gridView.writeVTK('solution', pointdata={'solution': self.uh}, number = i+1)
-#            print('writing done')
-            print(self.get_flux())
                         
 if __name__ == '__main__':
 #    tf = 1.2
@@ -278,6 +248,7 @@ if __name__ == '__main__':
 #    tf = 0.05
 #    n = 2000
     tf = 0.01
-    n = 400
+#    n = 400
+    n = 800
     solver = EulerSolver()
     solver.solve(tf, n)

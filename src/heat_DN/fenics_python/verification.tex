@@ -22,7 +22,10 @@
 \tableofcontents
 \newpage
 
-Note, these were mostly done for myself as means of verifying correctness of the solver and require more detailed descriptions.
+Note, these were mostly done for myself as means of verifying correctness of the solver and require more detailed descriptions. 
+
+Besides basic verification, I also do a comparison of two different methods for computing the heat flux. The first one being $\nabla \bm{u} \cdot \bm{n}$, i.e., the straight forward one via the solution in a given point. The second one is obtained via the classical Domain Decomposition approach, see Azahars papers. In the following plots, I will refer to the first method as "\textbf{grad}" and the second one as "\textbf{weak}". For easy comparison, I'll display them side by side, "grad" on the left and "weak" on the right.
+
 \section{Verification of monolithic solver}
 \FloatBarrier
 \subsection{Time}
@@ -31,8 +34,8 @@ Time integration error using 64 internal unknowns per unit length. See Figure \r
 \begin{figure}[ht!]
 \subfigure[Implicit Euler]{\includegraphics[scale=0.4]{mono_mono_time_ord_1.png}}
 \subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{mono_mono_time_ord_2.png}}
-\label{FIG MONO TIME}
 \caption{Time integration error, monolithic.}
+\label{FIG MONO TIME}
 \end{figure}
 % 
 \FloatBarrier
@@ -42,8 +45,8 @@ L2 error in space, using 2nd order time-integration and sufficiently many timest
 \begin{figure}[ht!]
 \begin{center}
 \includegraphics[scale=0.5]{mono_err_space_steps_100.png}
-\label{FIG MONO SPACE}
 \caption{Space error of monolithic solver.}
+\label{FIG MONO SPACE}
 \end{center}
 \end{figure}
 % 
@@ -56,38 +59,54 @@ We first verify the correctness of the Dirichlet and Neumann solvers on themselv
 % 
 \FloatBarrier
 \subsubsection{Time}
-See Figure \ref{FIG D TIME}, first, resp. second order is observed, stagnates upon hitting the spatial error limit.
-
+See Figures \ref{FIG D TIME 1} and \ref{FIG D TIME 2}, first, resp. second order is observed, stagnates upon hitting the spatial error limit. The heat flux computed by "Grad" appears to have a smaller error in space.
+% 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_time_ord_1_True.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_time_ord_2_True.png}}
-\label{FIG D TIME}
-\caption{Time integration error, Dirichlet solver.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_time_ord_1_True.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_time_ord_1_True.png}}
+\caption{Time integration error, Dirichlet solver, Implicit Euler.}
+\label{FIG D TIME 1}
+\end{figure}
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_time_ord_2_True.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_time_ord_2_True.png}}
+\caption{Time integration error, Dirichlet solver, Crank-Nicolson.}
+\label{FIG D TIME 2}
 \end{figure}
 % 
 \FloatBarrier
 \subsubsection{Space}
-See Figure \ref{FIG D SPACE}. Second order in the solution is observed, stagnates a bit too early for IE due to hitting limit of time-integration error. Flux is only first order accurate due to being the derivative of the solution.
-
+See Figures \ref{FIG D SPACE 1} and \ref{FIG D SPACE 2}. Second order in the solution is observed, stagnates a bit too early for IE due to hitting limit of time-integration error. Flux is at most first order accurate due to being the derivative of the solution, curiously enough, it appears to be of order $1/2$ for "Weak" \& Implicit Euler.
+% 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_space_ord_1_True.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_space_ord_2_True.png}}
-\label{FIG D SPACE}
-\caption{Space discretization error, Dirichlet solver.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_space_ord_1_True.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_space_ord_1_True.png}}
+\caption{Space discretization error, Dirichlet solver, Implicit Euler.}
+\label{FIG D SPACE 1}
 \end{figure}
-
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_space_ord_2_True.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_space_ord_2_True.png}}
+\caption{Space discretization error, Dirichlet solver, Crank-Nicolson.}
+\label{FIG D SPACE 2}
+\end{figure}
+% 
 \FloatBarrier
 \subsection{Neumann solver}
+% 
+Note that the different variants of computing the flux do not concern the Neumann solver.
 % 
 \FloatBarrier
 \subsubsection{Time}
 See Figure \ref{FIG N TIME}, first, resp. second order is observed.
-
+% 
 \begin{figure}[ht!]
 \subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_time_ord_1_False.png}}
 \subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_time_ord_2_False.png}}
+\caption{Time integration error, Neumann solver.}
 \label{FIG N TIME}
-\caption{Time integration error, Dirichlet solver.}
 \end{figure}
 % 
 \FloatBarrier
@@ -97,8 +116,8 @@ See Figure \ref{FIG N SPACE}. Second order in the solution is observed, stagnate
 \begin{figure}[ht!]
 \subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_space_ord_1_False.png}}
 \subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_space_ord_2_False.png}}
+\caption{Space discretization error, Neumann solver.}
 \label{FIG N SPACE}
-\caption{Space discretization error, Dirichlet solver.}
 \end{figure}
 % 
 \FloatBarrier
@@ -107,56 +126,102 @@ The general question is if the solution obtained from using WR converges to the 
 % 
 \FloatBarrier
 \subsection{Tolerance}
-We want to see that the solution from using WR converges to the monolithic solution for $TOL \rightarrow 0$. Result can be seen in Figure \ref{FIG WR TOL}. We do not observe convergence. At this point, we can assume that the data exchange due to WR introduces an error in time or space.
+We want to see that the solution from using WR converges to the monolithic solution for $TOL \rightarrow 0$. Result can be seen in Figures \ref{FIG WR TOL 1} and \ref{FIG WR TOL 2}. We do not observe convergence. At this point, we can assume that the data exchange due to WR introduces an error in time or space.
+
+The flux computation via "Weak" yields a notably smaller error.
+
+The non-convergence means the monolithic solution is not the fixed point of WR, for fixed $\Delta t$, $\Delta x$ and $TOL \rightarrow 0$.
 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_mono_time_steps_20_ord_1.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_mono_time_steps_20_ord_2.png}}
-\label{FIG WR TOL}
-\caption{WR for $TOL \rightarrow 0$.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_mono_time_steps_20_ord_1.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_mono_time_steps_20_ord_1.png}}
+\caption{WR for $TOL \rightarrow 0$. Implicit Euler.}
+\label{FIG WR TOL 1}
+\end{figure}
+
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_mono_time_steps_20_ord_2.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_mono_time_steps_20_ord_2.png}}
+\caption{WR for $TOL \rightarrow 0$. Crank-Nicolson.}
+\label{FIG WR TOL 2}
 \end{figure}
 % 
 \FloatBarrier
 \subsection{Time}
-Next up we take $TOL = 10^{-10}$ and let $\Delta t \rightarrow 0$. See Figure \ref{FIG WR DT} for the result. Again, the error is bounded by a limit, which is likely due to an error in space.
+Next up we take $TOL = 10^{-10}$ and let $\Delta t \rightarrow 0$. See Figures \ref{FIG WR DT 1} and \ref{FIG WR DT 2} for results. For implicit Euler, one gets a clear first order convergence rate. With Crank-Nicolson, second order is observed, with the addition that flux computation using "Grad" leads to early stagnation, possibly due to the spatial error.
 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_comb_error_ord_1.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_comb_error_ord_2.png}}
-\label{FIG WR DT}
-\caption{WR for $\Delta t \rightarrow 0$.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_comb_error_ord_1.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_comb_error_ord_1.png}}
+\caption{WR for $\Delta t \rightarrow 0$. Implicit Euler.}
+\label{FIG WR DT 1}
+\end{figure}
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_comb_error_ord_2.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_comb_error_ord_2.png}}
+\caption{WR for $\Delta t \rightarrow 0$. Crank-Nicolson.}
+\label{FIG WR DT 2}
 \end{figure}
 % 
 \FloatBarrier
 \subsection{Space}
-Lastly, we consider $\Delta x \rightarrow 0$. See Figure \ref{FIG WR DX} for the result. We do not see the expected second order in space as given by linear FE, but only first order. This is due to the computation of the flux only resulting in a spatially first order accurate flux, see Figure \ref{FIG D TIME}.
+Lastly, we consider $\Delta x \rightarrow 0$ with $\Delta t$ fixed and $TOL = 10^{-10}$. There should not be any error when comparing with the monolithic solution. However, there is a discrepancy due do not exactly having a matching discretization. Data exchange on the interface is discrete, but the input is a continuous (in space) function. This apparently introduces an additional error, which ideally vanishes as quickly as possible for $\Delta x \rightarrow 0$.
+
+See Figures \ref{FIG WR DX 1} and \ref{FIG WR DX 2} for results. For "Grad" we observe first order convergence, presumably because the computed flux is only first order accurate in space. With "Weak" we observe second order for implicit Euler and close to $4$th order for Crank-Nicolson.
 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_comb_error_space_ord_1.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_comb_error_space_ord_2.png}}
-\label{FIG WR DX}
-\caption{WR for $\Delta t \rightarrow 0$.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_comb_error_space_ord_1.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_comb_error_space_ord_1.png}}
+\caption{WR for $\Delta t \rightarrow 0$. Implicit Euler.}
+\label{FIG WR DX 1}
+\end{figure}
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_comb_error_space_ord_2.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_comb_error_space_ord_2.png}}
+\caption{WR for $\Delta t \rightarrow 0$. Crank-Nicolson.}
+\label{FIG WR DX 2}
 \end{figure}
 % 
 \FloatBarrier
 \subsection{Self consistency}
-While we observe an additional error in space due to WR, our main goal is to resolve the time-coupling. Thus we the question is if the order in time is preserved. We verify repeating the verification of $\Delta t \rightarrow 0$ and instead measure the error using a reference solution for a sufficiently small timestep. Figure \ref{FIG WR CONS} shows the result, which is that the time-integration orders are preserved.
+While we observe an additional error in space due to WR, our main goal is to resolve the time-coupling. Thus we the question is if the order in time is preserved. We verify repeating the verification of $\Delta t \rightarrow 0$ and instead measure the error using a reference solution for a sufficiently small timestep. Figures \ref{FIG WR CONS 1} and \ref{FIG WR CONS 2} show the results, which is that the time-integration orders are preserved.
 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_verify_self_time_ord_1.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_verify_self_time_ord_2.png}}
-\label{FIG WR CONS}
-\caption{WR for $\Delta t \rightarrow 0$ using reference solution with smaller $\Delta t$.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_self_time_ord_1.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_self_time_ord_1.png}}
+\caption{WR for $\Delta t \rightarrow 0$ using reference solution with smaller $\Delta t$. Implicit Euler.}
+\label{FIG WR CONS 1}
+\end{figure}
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_verify_self_time_ord_2.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_verify_self_time_ord_2.png}}
+\caption{WR for $\Delta t \rightarrow 0$ using reference solution with smaller $\Delta t$. Crank-Nicolson.}
+\label{FIG WR CONS 2}
 \end{figure}
 % 
 \FloatBarrier
-\subsection{Optimal $\Theta$}
-Here we want to verify the optimal relaxation parameter being $\Theta = 1/2$ for equal material parameters. Results are in Figure \ref{FIG WR CONV} and look good.
-
+\subsection{Optimal relaxation parameter}
+Here we want to verify the optimal relaxation parameter being $\Theta = 1/2$ for equal material parameters. Results in Figures \ref{FIG WR CONV 1} and \ref{FIG WR CONV 2} look good.
+% 
 \begin{figure}[ht!]
-\subfigure[Implicit Euler]{\includegraphics[scale=0.4]{grad_rates_ord_1.png}}
-\subfigure[Crank-Nicolson]{\includegraphics[scale=0.4]{grad_rates_ord_2.png}}
-\label{FIG WR CONV}
-\caption{Observed convergence rates.}
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_rates_ord_1.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_rates_ord_1.png}}
+\caption{Observed convergence rates. Implicit Euler.}
+\label{FIG WR CONV 1}
 \end{figure}
+% 
+\begin{figure}[ht!]
+\subfigure[\textbf{Grad}]{\includegraphics[scale=0.4]{grad_rates_ord_2.png}}
+\subfigure[\textbf{Weak}]{\includegraphics[scale=0.4]{weak_rates_ord_2.png}}
+\caption{Observed convergence rates. Crank-Nicolson.}
+\label{FIG WR CONV 2}
+\end{figure}
+% 
+\FloatBarrier
+\subsection{Conclusion}
+% 
+The expected orders are attained. While flux computation via the gradient ("Grad") yields an objectively better result for the Dirichlet solver on its own, the flux computed via the weak form ("Weak") yields better results in the context of Waveform-Relaxation.
 \end{document}

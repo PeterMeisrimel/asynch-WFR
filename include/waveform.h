@@ -12,21 +12,21 @@ Important note: This class does not allocate the memory for the data and is done
 */
 class Waveform{
 protected:
-	int _n;      // number of points in time
+    int _n;      // number of points in time
     int _length; // size of vector
-	double * _times;
-	double * _data;
+    double * _times;
+    double * _data;
 public:
-	Waveform(int, int, double *, double *);           // n, length, times, pointer to data
-	Waveform(int, int, double *, double *, double *); // same plus vector for initialization
+    Waveform(int, int, double *, double *);           // n, length, times, pointer to data
+    Waveform(int, int, double *, double *, double *); // same plus vector for initialization
 
-	void get_time_full      (double *);         // times_vec (out)
+    void get_time_full      (double *);         // times_vec (out)
     void set_time_full      (double *);         // times_vec
     void time_shift         (double);           // time
     // evaluate waveform at a given time t, uses linear interpolation or extrapolation
-	virtual void eval               (double, double *); // t, vec (out)
-	virtual void set                (int, double *);    // idx, vec
-	virtual void set_last           (double *);         // vec
+    virtual void eval               (double, double *); // t, vec (out)
+    virtual void set                (int, double *);    // idx, vec
+    virtual void set_last           (double *);         // vec
     virtual void get                (int, double *);    // idx, vec
     virtual void get_last           (double *);         // vec (out)
     virtual void get_all            (Waveform *);       // copy data vector

@@ -1,4 +1,4 @@
-# compile via   ffc -l dolfin heat_flux.ufl
+# compile via   ffc -l dolfin heat_flux_grad.ufl
 # grid
 cell = triangle
 element = FiniteElement("Lagrange", cell, 1)

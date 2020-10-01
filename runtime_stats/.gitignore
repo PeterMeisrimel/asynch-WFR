@@ -9,3 +9,4 @@ run_all_test.sh
 *.pyc
 *.log
 nohup.out
+heat_run.sh

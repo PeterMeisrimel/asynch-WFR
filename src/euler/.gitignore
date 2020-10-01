@@ -1,3 +1,4 @@
 *.log
 euler_original*
 *.vtu
+euler_min*
