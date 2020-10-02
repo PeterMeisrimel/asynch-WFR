@@ -98,8 +98,6 @@ class Problem_heat:
             self.schene.model.t_fac = 0.
         except Exception:
             pass
-#        self.dt.value = 0.
-#        self.t_fac = 1.
     def create_checkpoint(self):
         self.u_checkpoint.interpolate(self.uold)
 
@@ -108,7 +106,6 @@ class Problem_heat:
 
     def do_step(self, dt, ug):
         self.scheme.model.dt = dt
-#        self.dt.value = dt
 
         intp = interp1d(self.yy, ug)
         self.u_gamma.interpolate(lambda x: intp(x[1]))
@@ -119,16 +116,15 @@ class Problem_heat:
         return flux
 
     def solve(self, tf, n_steps):
-#        self.dt.value = tf/n_steps
         self.scheme.model.dt = tf/n_steps
-#        for _ in range(n_steps):
-        for i, t in enumerate(np.linspace(0, tf, n_steps+1)[:-1]):
-            print('mono timestep {} at t = {}, dt = {}'.format(i, t, self.scheme.model.dt))
+        for _ in range(n_steps):
+#        for i, t in enumerate(np.linspace(0, tf, n_steps+1)[:-1]):
+#            print('mono timestep {} at t = {}, dt = {}'.format(i, t, self.scheme.model.dt))
             self.scheme.solve(target = self.unew)
             self.uold.assign(self.unew)
 
     def get_sol(self, Nx, Ny, dx, xx = 0, offset = 0):
-        print('fetching solution', Nx, Ny)
+#        print('fetching solution', Nx, Ny)
         res = np.zeros(Nx*Ny)
         sampler = Sampler(self.unew)
         for i in range(offset,  Nx):
@@ -139,7 +135,7 @@ class Problem_heat:
 
     ######
     def get_ex_sol(self, t = 1):
-        print('getting exact solution', self.NN)
+#        print('getting exact solution', self.NN)
         t_fac = np.exp(-(self.len**2 + 1)/(self.len**2)*np.pi**2*t*float(self.lam)/float(self.a))
 #        self.scheme.model.t_fac = t_fac
         self.t_fac.value = t_fac
@@ -204,7 +200,7 @@ if __name__ == '__main__':
     from verification import get_parameters, verify_space_error, verify_mono_time
     savefig = 'mono_'
     ## verify space order of monolithic solution
-#    verify_space_error(1, k = 8, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
+    verify_space_error(1, k = 8, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
 
     ## verify time order with itself
     pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1}

@@ -47,7 +47,6 @@ class Problem_heat_D(Problem_heat):
         return self.flux_f()
 
     def do_step(self, dt, ug):
-        print('timesteps! ', dt)
         self.scheme.model.dt = dt
 
         self.ug_interp.y = ug
@@ -61,7 +60,6 @@ class Problem_heat_D(Problem_heat):
     def solve(self, tf, n_steps):
         dt = tf/n_steps
         for i, t in enumerate(np.linspace(0, tf, n_steps + 1)[:-1]):
-            print('D timestep {} at t = {}'.format(i, t))
             self.get_ex_sol(t + dt) ## ex sol now rests in unew
             self.do_step(dt, self.get_u_gamma(self.unew))
             
@@ -111,7 +109,6 @@ class Problem_heat_D_weak(Problem_heat_D):
         self.flux_solver.solve(target = self.flux_sol)
         flux = self.flux_f_weak()*self.dx
         flux[0], flux[-1] = 0, 0
-        print('fluxxx1 ', flux)
         return flux
     
     def get_flux_weak2(self):
@@ -119,11 +116,9 @@ class Problem_heat_D_weak(Problem_heat_D):
         flux = 2*self.flux_f_weak()*self.dx - self.flux_old
         flux[0], flux[-1]  = 0, 0
         self.flux_old = flux
-        print('fluxxx2 ', flux)
         return flux
     
     def do_step(self, dt, ug):
-        print('timesteps! ', dt)
         self.flux_solver.model.dt = dt
         self.scheme.model.dt = dt
 
@@ -164,7 +159,6 @@ class Problem_heat_N(Problem_heat):
     def get_u0(self): return self.get_u_gamma(self.unew)
 
     def do_step(self, dt, flux_1, flux_2):
-#        self.dt.value = dt
         self.scheme.model.dt = dt
 
         self.f_old_interpol.y = flux_1
@@ -180,7 +174,6 @@ class Problem_heat_N(Problem_heat):
     def solve(self, tf, n_steps):
         dt = tf/n_steps
         for i, t in enumerate(np.linspace(0, tf, n_steps + 1)[:-1]):
-            print('N timestep {} at t = {}'.format(i, t))
             self.get_ex_flux(t) # ex flux now sits in unew
             flux_old = np.copy(self.get_u_gamma(self.unew))
 
@@ -202,8 +195,8 @@ if __name__ == '__main__':
         solver = get_solve_WR(D_prob, Problem_heat_N)
 
         ## verify dirichlet and neumann solvers on their own
-        pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -1, 'xb': 1}
-#        verify_time(D_prob, True, k = 8, order = 1, **pp, savefig = savefig)
+        pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1}
+        verify_time(D_prob, True, k = 8, order = 1, **pp, savefig = savefig)
         verify_time(D_prob, True, k = 8, order = 2, **pp, savefig = savefig)
     
         if i == 0:
@@ -219,28 +212,28 @@ if __name__ == '__main__':
             verify_space(Problem_heat_N, False, k = 6, order = 2, N_steps = 50, **pp, savefig = savefig)
     
         ## verify WR converges against monolithic solution
-        pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -1, 'xb': 1, 'theta': 0.5}
-#        verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
-#        verify_with_monolithic(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
+        pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1, 'theta': 0.5}
+        verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
+        verify_with_monolithic(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
     
         # verify combined error, splitting + time int for decreasing dt
-#        verify_comb_error(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
-#        verify_comb_error(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
+        verify_comb_error(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
+        verify_comb_error(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
     
         ## verify combined error, splitting + time int for decreasing dx
         pp = {'tf': 1., **get_parameters(), 'xa': -1, 'xb': 1, 'theta': 0.5}
-#        verify_comb_error_space(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig, TOL = 1e-3, N_steps = 100)
-#        verify_comb_error_space(solve_WR = solver, k = 6, order = 2, **pp, savefig = savefig, TOL = 1e-6, N_steps = 50)
+        verify_comb_error_space(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig, TOL = 1e-3, N_steps = 100)
+        verify_comb_error_space(solve_WR = solver, k = 6, order = 2, **pp, savefig = savefig, TOL = 1e-6, N_steps = 50)
     
         ## verify convergence rate
-        pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -1, 'xb': 1}
-#        plot_theta(solve_WR = solver, savefig = savefig, order = 1, **pp)
-#        plot_theta(solve_WR = solver, savefig = savefig, order = 2, **pp)
+        pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1}
+        plot_theta(solve_WR = solver, savefig = savefig, order = 1, **pp)
+        plot_theta(solve_WR = solver, savefig = savefig, order = 2, **pp)
     
         ## verify time-integration order with itself
-        pp = {'tf': 1., **get_parameters(), 'gridsize': 32, 'xa': -1, 'xb': 1, 'theta': 0.5}
-#        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
-#        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)
+        pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1, 'theta': 0.5}
+        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
+        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)
         
 #    pp = {'tf': 1., **get_parameters(), 'gridsize': 512, 'xa': -1, 'xb': 1, 'theta': 0.5}
 #    verify_comb_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),

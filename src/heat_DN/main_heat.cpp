@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
     
     if (using_py){
         Py_Initialize();
-        import_array(); // numpy stuff
+        import_array(); // numpy stuff, ignore warning here
     }
     
     // IMPORTANT TO INITIALIZE PROBLEMS LIKE THIS
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
         else if (solver2 == 2)
             prob2 = new Problem_heat_dune_N(gridsize2, alpha2, lambda2);
     }
-    setup_and_run_WFR(prob1, prob2, which_conv, t_end, timesteps, argc, argv);
+    setup_and_run_WFR(prob1, prob2, which_conv, t_end, timesteps, argc, argv); // ignore warning here
     
     if (using_py)
         Py_Finalize();

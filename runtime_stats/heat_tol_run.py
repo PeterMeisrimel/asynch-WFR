@@ -63,11 +63,11 @@ print('parameters: ', parameters)
 path = run_tolerances('heat_DN', 'heat_DN', 'heat_CN_{}'.format(which), times = times,
                       tolerances = tolerances, parameters = parameters,
 #                      run_prefix = 'nohup',
-                      runmodes = ['GS1', 'NEW'],
-                      run_names = ['GS_DN', 'NEW2'],
+                      runmodes = ['GS1', 'JAC', 'NEW', 'NEW'],
+                      run_names = ['GS_DN', 'JAC', 'NEW1', 'NEW2'],
                       ref_run_name = 'GS_DN',
-                      labels = ['GS_DN', 'NEW2'],
-                      var_relax = [0, 2]
+                      labels = ['GS_DN', 'JAC', 'NEW1', 'NEW2'],
+                      var_relax = [0, 0, 1, 2]
                       )
 print('...processing output')
 process_output(path)
