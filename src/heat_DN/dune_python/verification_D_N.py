@@ -43,7 +43,6 @@ def verify_time(prob = None, D = True, tf = 1, k = 10, kmin = 0, order = 1, save
     
     dts, errs, errs_f = [], [], []
     for n_steps in [2**i for i in range(kmin, k)]:
-        print('RUNNING FOR {} STEPS'.format(n_steps))
         p.reset()
         dts.append(tf/n_steps)
         p.solve(tf, n_steps)

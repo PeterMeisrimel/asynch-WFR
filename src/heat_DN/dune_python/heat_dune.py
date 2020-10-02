@@ -118,26 +118,19 @@ class Problem_heat:
     def solve(self, tf, n_steps):
         self.scheme.model.dt = tf/n_steps
         for _ in range(n_steps):
-#        for i, t in enumerate(np.linspace(0, tf, n_steps+1)[:-1]):
-#            print('mono timestep {} at t = {}, dt = {}'.format(i, t, self.scheme.model.dt))
             self.scheme.solve(target = self.unew)
             self.uold.assign(self.unew)
 
     def get_sol(self, Nx, Ny, dx, xx = 0, offset = 0):
-#        print('fetching solution', Nx, Ny)
         res = np.zeros(Nx*Ny)
         sampler = Sampler(self.unew)
         for i in range(offset,  Nx):
-#            for j, yy in enumerate(np.linspace(0, 1, Ny)):
-#                res[(i-offset)*Ny + j] = sampler.pointSample([xx + i*dx, yy])
             res[(i-offset)*Ny:(i-offset+1)*Ny] = sampler.lineSample([xx + i*dx, 0.], [xx + i*dx, 1.], Ny)[1]
         return res
 
     ######
     def get_ex_sol(self, t = 1):
-#        print('getting exact solution', self.NN)
         t_fac = np.exp(-(self.len**2 + 1)/(self.len**2)*np.pi**2*t*float(self.lam)/float(self.a))
-#        self.scheme.model.t_fac = t_fac
         self.t_fac.value = t_fac
         self.unew.interpolate(self.u0)
     ######

@@ -48,19 +48,10 @@ def verify_space_error(tf = 1, n_min = 2, N_steps = 100, k = 8, savefig = None, 
     for n in n_list:
         # L2 factor for 2D case, inner points
         L2_fac = 1/(n + 1)
-        print('n', n, L2_fac)
         
-        print('doing reference solution')
         ref = solve_exact(tf, gridsize = n, **kwargs)
-#        print('ref', ref, ref.shape)
-        
-        print('doing numerical solution')
         sol = solve_monolithic(tf, N_steps, gridsize = n, **kwargs)
-        
-#        print('sol', sol, sol.shape)
         errs.append(np.linalg.norm(ref - sol, 2)*L2_fac)
-        print('error', errs[-1])
-        
     for i in range(k-1):
         print(np.log2(errs[i]/errs[i+1]))
     
