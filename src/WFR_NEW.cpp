@@ -219,7 +219,8 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     // Window & Waveform for receiving data
     MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_recv_data, &WIN_data);
     // \todo TODO why would this be a locking waveform?
-    WF_recv = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data, &WIN_data, ID_SELF);
+//    WF_recv = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data, &WIN_data, ID_SELF);
+    WF_recv = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data);
     // flags for which data has already been received
     MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_recv_flag, &WIN_recv_flag);
     // init flags
@@ -346,11 +347,11 @@ void WFR_NEW_var_relax::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
         // first sync flags, other way around a flag might be true, but data might not be there yet (flag updated during data sync.)
         // alternative: enclose locks?
         // synch flags marking which data is new
-        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_recv_flag); // Shared as it is read only
+        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_recv_flag);  
         MPI_Win_sync(WIN_recv_flag); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_recv_flag);
         // sync data exposed by window, i.e. catch new updates
-        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
+        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_data);
 
@@ -566,6 +567,11 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     relax_self_done_flag_jac[0] = true;
     for (int i = 1; i < size_shared_grid; i++)
         relax_self_done_flag_jac[i] = false;
+        
+    relax_flag_jac_mark = new bool[size_shared_grid];
+    for (int i = 0; i < size_shared_grid; i++)
+        relax_flag_jac_mark[i] = false;
+    
     
     log_errors = errlogging;
     init_error_log(steps_macro, WF_MAX_ITER);
@@ -628,7 +634,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
         MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
         // do relaxation on shared grid
         int idx_recv_grid = 0; // idx for keeping track of corresponding index on receiving grid
-        double theta_tmp = 1; 
+//        double theta_tmp = 1; 
         for (int i = 1; i < size_shared_grid; i++){
 //            std::cout << ID_SELF << " error hunting 0001 " << i << std::endl;
             if (times_shared_flags[i] & FLAG_GRID_OTHER) // keeping track of index on receiving grid
@@ -720,14 +726,12 @@ void WFR_NEW_var_relax_MR::integrate_window(Waveform * WF_calc, Waveform * WF_sr
         // alternative: enclose locks?
         // synch flags marking which data is new
 //        std::cout << ID_SELF << " timestep " << i << "  001"<< std::endl;
-//        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_recv_flag); // Shared as it is read only
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_recv_flag); // Shared as it is read only
+        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_recv_flag); // Shared as it is read only
         MPI_Win_sync(WIN_recv_flag); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_recv_flag);
         // sync data exposed by window, i.e. catch new updates
 //        std::cout << ID_SELF << " timestep " << i << "  002"<< std::endl;
-//        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // Shared as it is read only
+        MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // Shared as it is read only
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_data);
 
@@ -751,6 +755,17 @@ void WFR_NEW_var_relax_MR::integrate_window(Waveform * WF_calc, Waveform * WF_sr
         // 2. find endpoint of current timesteps
         int idx_new_timepoint = i + 1;
         
+        // determine relevant interval
+        while (times_shared[mapping_recv_to_shared[idx_relevant_interval_left]] <= t)
+            idx_relevant_interval_left++;
+        idx_relevant_interval_left--;
+            
+        idx_relevant_interval_right = idx_relevant_interval_left + 1;
+        while (times_shared[mapping_recv_to_shared[idx_relevant_interval_right]] < t + dt)
+            idx_relevant_interval_right++;
+        int idx_shared_grid_startpoint = mapping_recv_to_shared[idx_relevant_interval_left];
+        int idx_shared_grid_endpoint = mapping_recv_to_shared[idx_relevant_interval_right];
+        
         // compare on shared grid to see if other process is ahead
 //        std::cout << ID_SELF << " idx latest recv " << idx_latest_timepoint_recv << " at t = " << mapping_recv_to_shared[idx_latest_timepoint_recv] << " new t = " << mapping_self_to_shared[idx_new_timepoint] << std::endl;
         bool other_process_ahead = (mapping_recv_to_shared[idx_latest_timepoint_recv] >= mapping_self_to_shared[idx_new_timepoint]);
@@ -759,22 +774,23 @@ void WFR_NEW_var_relax_MR::integrate_window(Waveform * WF_calc, Waveform * WF_sr
         
             // determine relevant interval, by indices
             // left side, maximal point of recv grid <= t
-            while (times_shared[mapping_recv_to_shared[idx_relevant_interval_left]] <= t)
-                idx_relevant_interval_left++;
-            idx_relevant_interval_left--;
-                
-            idx_relevant_interval_right = idx_relevant_interval_left + 1;
-            while (times_shared[mapping_recv_to_shared[idx_relevant_interval_right]] < t + dt)
-                idx_relevant_interval_right++;
+//            while (times_shared[mapping_recv_to_shared[idx_relevant_interval_left]] <= t)
+//                idx_relevant_interval_left++;
+//            idx_relevant_interval_left--;
+//                
+//            idx_relevant_interval_right = idx_relevant_interval_left + 1;
+//            while (times_shared[mapping_recv_to_shared[idx_relevant_interval_right]] < t + dt)
+//                idx_relevant_interval_right++;
                 
 //            std::cout << ID_SELF << " limits " << idx_relevant_interval_left << " " << idx_relevant_interval_right << std::endl;
             
             // a) check relaxation status of previous received timestep, a.k.a. left limit of relevant interval
-            int idx_shared_grid_startpoint = mapping_recv_to_shared[idx_relevant_interval_left];
+//            int idx_shared_grid_startpoint = mapping_recv_to_shared[idx_relevant_interval_left];
             
-            bool previous_recv_timestep_relaxed = relax_self_done_flag[idx_shared_grid_startpoint] && relax_self_done_flag_jac[idx_shared_grid_startpoint];
+//            bool previous_recv_timestep_relaxed = relax_self_done_flag[idx_shared_grid_startpoint] || relax_self_done_flag_jac[idx_shared_grid_startpoint];
+            bool previous_recv_timestep_relaxed = relax_self_done_flag[idx_shared_grid_startpoint] || relax_self_done_flag_jac[idx_shared_grid_startpoint];
             if (not previous_recv_timestep_relaxed){ // repeat JAC relaxation for said timepoint
-//                std::cout << ID_SELF << " JAC RELAX of previous step " << std::endl;
+//                std::cout << ID_SELF << " JAC RELAX of previous step " << idx_shared_grid_startpoint << std::endl;
                 MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data); // lock receving data window
 //                int idx_jac_relax_recv = idx_latest_timepoint_recv - 1;
 //                int idx_jac_relax_shared = mapping_recv_to_shared[idx_jac_relax_recv];
@@ -785,7 +801,7 @@ void WFR_NEW_var_relax_MR::integrate_window(Waveform * WF_calc, Waveform * WF_sr
             } // else: relaxation for said time-point already done
             
             // b) do interpolation -> relaxation for all remaining points
-            int idx_shared_grid_endpoint = mapping_recv_to_shared[idx_relevant_interval_right];
+//            int idx_shared_grid_endpoint = mapping_recv_to_shared[idx_relevant_interval_right];
             MPI_Win_lock(MPI_LOCK_SHARED, ID_SELF, 0, WIN_data);
             
             // points from [idx_shared_grid_startpoint+1, idx_shared_grid_endpoint) need interpolation
@@ -794,19 +810,39 @@ void WFR_NEW_var_relax_MR::integrate_window(Waveform * WF_calc, Waveform * WF_sr
 //                std::cout << ID_SELF << " GS RELAX OF STEP " << j << std::endl;
                 // write interpolation result into temporary vector
                 WF_recv->eval(times_shared[j], relax_interpol_aux);
+                if (relax_flag_jac_mark[j])
+                    theta_tmp = theta_relax;
+                else
+                    theta_tmp = theta_relax_other_ahead;
                 // do relaxation
                 for (int k = 0; k < DIM_OTHER; k++)
-                    WF_other_data[j*DIM_OTHER + k] = (1 - theta_relax_other_ahead)*WF_other_data[j*DIM_OTHER + k] + theta_relax_other_ahead*relax_interpol_aux[k];
-                relax_self_done_flag[j] = true;
+                    WF_other_data[j*DIM_OTHER + k] = (1 - theta_tmp)*WF_other_data[j*DIM_OTHER + k] + theta_tmp*relax_interpol_aux[k];
+//                    WF_other_data[j*DIM_OTHER + k] = (1 - theta_relax_other_ahead)*WF_other_data[j*DIM_OTHER + k] + theta_relax_other_ahead*relax_interpol_aux[k];
+                if (relax_flag_jac_mark[j])
+                    relax_self_done_flag_jac[j] = true;
+                else
+                    relax_self_done_flag[j] = true;
             }
             // right endpoint does not require interpolation, since the time-point is on the shared grid
 //            std::cout << ID_SELF << " GS RELAX OF STEP (endpoint)" << idx_shared_grid_endpoint << std::endl;
-            for (int k = 0; k < DIM_OTHER; k++){
-                WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] = (1 - theta_relax_other_ahead)*WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] + theta_relax_other_ahead*WF_recv_data[idx_relevant_interval_right*DIM_OTHER + k];
+
+            if (relax_flag_jac_mark[idx_shared_grid_endpoint])
+                theta_tmp = theta_relax;
+            else
+                theta_tmp = theta_relax_other_ahead;
+            for (int k = 0; k < DIM_OTHER; k++)
+                WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] = (1 - theta_tmp)*WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] + theta_tmp*WF_recv_data[idx_relevant_interval_right*DIM_OTHER + k];
+//                WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] = (1 - theta_relax_other_ahead)*WF_other_data[idx_shared_grid_endpoint*DIM_OTHER + k] + theta_relax_other_ahead*WF_recv_data[idx_relevant_interval_right*DIM_OTHER + k];
                 // mark point as relaxed, on shared grid
+            if (relax_flag_jac_mark[idx_shared_grid_endpoint])
+                relax_self_done_flag_jac[idx_shared_grid_endpoint] = true;
+            else
                 relax_self_done_flag[idx_shared_grid_endpoint] = true;
-            }
+//            relax_self_done_flag[idx_shared_grid_endpoint] = true;
             MPI_Win_unlock(ID_SELF, WIN_data);
+        }else{ // other process not ahead, mark relevant time-point for tentative Jacobi relaxation
+            for (int j = idx_shared_grid_startpoint; j < idx_shared_grid_endpoint; j++)
+                relax_flag_jac_mark[j] = true;
         }
         
         // make the choice of which waveform to choose from and use linear interpolation			

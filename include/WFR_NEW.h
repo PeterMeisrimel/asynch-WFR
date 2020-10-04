@@ -75,9 +75,9 @@ class WFR_NEW_var_relax_MR : public WFR_NEW{
 private:
     // gs_self = own process is last, rationale: this step can be done mostly independent
     // gs_other = own process was first
-    double theta_relax_self_ahead, theta_relax_other_ahead;
+    double theta_relax_self_ahead, theta_relax_other_ahead, theta_tmp;
     
-    bool * WF_other_data_recv_flag, * relax_self_done_flag, * relax_other_done_flag, * relax_self_done_flag_jac;
+    bool * WF_other_data_recv_flag, * relax_self_done_flag, * relax_other_done_flag, * relax_self_done_flag_jac, *relax_flag_jac_mark;
     MPI_Win WIN_recv_flag;
     double * WF_recv_data;
     Waveform * WF_recv;
