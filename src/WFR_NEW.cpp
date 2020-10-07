@@ -261,6 +261,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
+            WF_recv -> time_shift(window_length); // new
         }
     } // endfor macrostep loop
     runtime = MPI_Wtime() - runtime; // runtime measurement end
@@ -488,7 +489,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
 //        if (ID_SELF == 0)
 //            std::cout << i << " " << times_self[i_self] << " " << times_other[i_other] << std::endl;
         // shared time point
-        if (std::abs(times_self[i_self] - times_other[i_other]) < 1e-10){ // time-point on both grids
+        if (std::abs(times_self[i_self] - times_other[i_other]) < 1e-12){ // time-point on both grids
             times_shared[i] = times_self[i_self];
             times_shared_flags[i] = FLAG_GRID_SELF + FLAG_GRID_OTHER;
             
@@ -560,7 +561,8 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
         relax_other_done_flag[i] = false;
     // flags for marking which entry already received relaxation (GS)
     relax_self_done_flag = new bool[size_shared_grid];
-    for (int i = 0; i < size_shared_grid; i++)
+    relax_self_done_flag[0] = true;
+    for (int i = 1; i < size_shared_grid; i++)
         relax_self_done_flag[i] = false;
     // flags for marking which entry already received relaxation (jac)
     relax_self_done_flag_jac = new bool[size_shared_grid];
@@ -593,6 +595,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
+            WF_recv -> time_shift(window_length); // new
         }
     } // endfor macrostep loop
     runtime = MPI_Wtime() - runtime; // runtime measurement end
@@ -623,7 +626,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
         // all outstanding RMA (send) operations done up to this point, since SendRecv is passed
         // sync data
 //        std::cout << ID_SELF << " integrate window done 0001" << std::endl;
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // Excl since it is updating self
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // Excl since it is updating self?
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_data);
         // necessary to also synch flags? Should not, since flags not used any longer
@@ -659,19 +662,23 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
                     theta_tmp = theta_relax;
 //                std::cout << ID_SELF << " CLEANUP RELAX " << i << " theta_tmp " << theta_tmp << std::endl;
 //                std::cout << ID_SELF << " error hunting 0005b " << i << std::endl; 
-                if (times_shared_flags[i] & FLAG_GRID_OTHER){ // point on other time-grid, no interpolation necessary
-                    for (int j = 0; j < DIM_OTHER; j++)
-                        WF_other_data[i*DIM_OTHER + j] = (1 - theta_tmp)*WF_other_data[i*DIM_OTHER + j] + theta_tmp*WF_recv_data[idx_recv_grid*DIM_OTHER + j];
-                }else{ // interpolation required
-                    // write interpolation result into temporary vector
-    //                std::cout << ID_SELF << " error hunting 0006b " << i << std::endl;
-    //                std::cout << ID_SELF << " max len " << WF_LEN_OTHER << " i " << i << " times_shared " << times_shared[i] << std::endl;
-                    WF_recv->eval(times_shared[i], relax_interpol_aux);
-    //                std::cout << ID_SELF << " error hunting 0007b " << i << std::endl; 
-                    // do relaxation
-                    for (int j = 0; j < DIM_OTHER; j++)
-                        WF_other_data[i*DIM_OTHER + j] = (1 - theta_tmp)*WF_other_data[i*DIM_OTHER + j] + theta_tmp*relax_interpol_aux[j];
-                }
+//                if (times_shared_flags[i] & FLAG_GRID_OTHER){ // point on other time-grid, no interpolation necessary
+//                    for (int j = 0; j < DIM_OTHER; j++)
+//                        WF_other_data[i*DIM_OTHER + j] = (1 - theta_tmp)*WF_other_data[i*DIM_OTHER + j] + theta_tmp*WF_recv_data[idx_recv_grid*DIM_OTHER + j];
+//                }else{ // interpolation required
+//                    // write interpolation result into temporary vector
+//    //                std::cout << ID_SELF << " error hunting 0006b " << i << std::endl;
+//    //                std::cout << ID_SELF << " max len " << WF_LEN_OTHER << " i " << i << " times_shared " << times_shared[i] << std::endl;
+//                    WF_recv->eval(times_shared[i], relax_interpol_aux);
+//    //                std::cout << ID_SELF << " error hunting 0007b " << i << std::endl; 
+//                    // do relaxation
+//                    for (int j = 0; j < DIM_OTHER; j++)
+//                        WF_other_data[i*DIM_OTHER + j] = (1 - theta_tmp)*WF_other_data[i*DIM_OTHER + j] + theta_tmp*relax_interpol_aux[j];
+//                }
+                WF_recv->eval(times_shared[i], relax_interpol_aux);
+                for (int j = 0; j < DIM_OTHER; j++)
+                    WF_other_data[i*DIM_OTHER + j] = (1 - theta_tmp)*WF_other_data[i*DIM_OTHER + j] + theta_tmp*relax_interpol_aux[j];
+                
             }
         }
         MPI_Win_unlock(ID_SELF, WIN_data);
@@ -683,7 +690,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
             WF_other_data_recv_flag[i] = false;
         MPI_Win_unlock(ID_SELF, WIN_recv_flag);
 
-        for (int i = 0; i < size_shared_grid; i++)
+        for (int i = 1; i < size_shared_grid; i++)
             relax_self_done_flag[i] = false;
         for (int i = 1; i < size_shared_grid; i++)
             relax_self_done_flag_jac[i] = false;
