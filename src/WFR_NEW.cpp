@@ -636,6 +636,11 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
         int idx_recv_grid = 0; // idx for keeping track of corresponding index on receiving grid
 //        double theta_tmp = 1; 
         for (int i = 1; i < size_shared_grid; i++){
+            /*
+            relax_flag_jac_mark irrelevant here: GS with other ahead will already be done,
+            and GS with self ahead takes precendence over JACOBI
+            */
+        
 //            std::cout << ID_SELF << " error hunting 0001 " << i << std::endl;
             if (times_shared_flags[i] & FLAG_GRID_OTHER) // keeping track of index on receiving grid
                 idx_recv_grid++;
@@ -682,6 +687,8 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
             relax_self_done_flag[i] = false;
         for (int i = 1; i < size_shared_grid; i++)
             relax_self_done_flag_jac[i] = false;
+        for (int i = 0; i < size_shared_grid; i++)
+            relax_flag_jac_mark[i] = false;
 
         // since own data is discarded after each iteration over a given time-window, relaxation is only done at receiver on other
         // the exception is the convergence check, for which one need the relaxed data
