@@ -49,7 +49,6 @@ Problem_heat_D::Problem_heat_D(int gridsize, double a, double g, int which) : Pr
     *(_flux_function -> vector()) = *_flux_vec;
     for(int i = 1; i < _length - 1; i++)
         _u0[i] = (*_flux_function)(1., i*_dx)*_dxinv;
-//        _u0[i] = (*_flux_function)(1., i*_dx)*_dxinv;
     // manually enforce boundary values
     _u0[0] = 0;
     _u0[_length - 1] = 0; // rounding might result in i*_dx to be outside of domain
@@ -95,15 +94,10 @@ void Problem_heat_D::do_step(double t, double dt, double * flux_out, Waveform * 
     *_dt = dt;
 
     WF_in -> eval(t + dt, _uother_old);    
-//    std::cout << " D eval at t = " << t + dt << std::endl;
-//    for (int i = 0; i < 32; i++)
-//        std::cout << _uother_old[i] << " ";
-//    std::cout << std::endl;
     _interface_vals -> set_vals(get_uother_old_p());
     
     dolfin::solve(*_a == *_L, *_unew, _bcs);
     
     get_flux(flux_out);
-    
     *_uold->vector() = *(_unew -> vector());
 }
