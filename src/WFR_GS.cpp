@@ -111,6 +111,19 @@ void WFR_GS::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_sel
         
         if (FIRST){
             integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax_self);
+            
+//            std::cout << " self WF " << std::endl;
+//            for (int jj = 0; jj < DIM_SELF*(steps_per_window_self+1); jj++)
+//                std::cout << WF_self_data[jj] << " ";
+//            std::cout << std::endl << std::endl;
+            
+//            for(int j = 0; j < steps_per_window_self + 1; j++){
+//                std::cout << " res " << j << std::endl;
+//                for (int k = 0; k < DIM_SELF; k++)
+//                    std::cout << WF_self_data[j*DIM_SELF + k] << " ";
+//                std::cout << std::endl;
+//                std::cout << std::endl;
+//            }
             integrate_window(WF_other, WF_self , steps_per_window_other, prob_other, theta_relax_other);
         }else{
             integrate_window(WF_other, WF_self , steps_per_window_other, prob_other, theta_relax_other);
