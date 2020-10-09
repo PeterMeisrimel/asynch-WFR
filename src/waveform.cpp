@@ -50,7 +50,6 @@ void Waveform::eval(double t, double * out){
     if(idx == _n)
         idx--;
     idx--;
-//    std::cout << "interpolation at t = " << t << " div factor = " << _times[idx+1] - _times[idx] << std::endl;
     double t_fac = (t - _times[idx])/(_times[idx+1] - _times[idx]);
     for(int i = 0; i < _length; i++)
         out[i] = (1 - t_fac) * _data[idx * _length + i] + t_fac * _data[(idx + 1) * _length + i];
