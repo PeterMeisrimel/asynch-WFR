@@ -10,9 +10,12 @@ u  = TrialFunction(element)
 u0 = Coefficient(element)
 
 # heat equation constants and timestep
-alpha  = Constant(cell)
-lambda_diff = Constant(cell)
-dt     = Constant(cell)
+#alpha  = Constant(cell)
+#lambda_diff = Constant(cell)
+#dt     = Constant(cell)
+alpha = Coefficient(FiniteElement("Real", triangle, 0))
+lambda_diff = Coefficient(FiniteElement("Real", triangle, 0))
+dt = Coefficient(FiniteElement("Real", triangle, 0))
 fold   = Coefficient(element)
 fnew   = Coefficient(element)
 

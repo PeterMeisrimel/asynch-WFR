@@ -19,7 +19,7 @@ Published under the GNU General Public License v3.0 License
 ## Software requirements
 
 At least MPI 2.x, respectively an implementation of the MPI 3 Standard. Has been developed using Open MPI 2.1.1
-For the heat equation test problem: FEniCs 2019.1.0
+For the heat equation test problem: FEniCs 2019.2.0.dev0
 DUNE
 
 ## Publications

@@ -6,7 +6,9 @@ element = FiniteElement("Lagrange", cell, 1)
 unew = Coefficient(element)
 v = TestFunction(element)
 
-n = VectorConstant(cell)
-lambda_diff = Constant(cell)
+#n = VectorConstant(cell)
+n = Coefficient(VectorElement("Real", triangle, 0, 2))
+#lambda_diff = Constant(cell)
+lambda_diff = Coefficient(FiniteElement("Real", triangle, 0))
 
 L = lambda_diff*dot(grad(unew), n)*v*ds
