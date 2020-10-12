@@ -451,7 +451,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     // time grid for shared grid
     times_shared = new double[size_shared_grid];
     times_shared[0] = 0;
-    times_shared[size_shared_grid - 1] = _t_end;
+    times_shared[size_shared_grid - 1] = _t_end/steps_macro;
     
     // flags for marking which grid a point belongs to
     // checked via & FLAG_GRID_SELF or FLAG_GRID_OTHER
@@ -537,7 +537,6 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     for (int i = 0; i < size_shared_grid; i++)
         relax_flag_jac_mark[i] = false;
     
-    
     log_errors = errlogging;
     init_error_log(steps_macro, WF_MAX_ITER);
 
@@ -550,6 +549,8 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
         prob_self -> create_checkpoint();
         WF_self ->get_last(u0_self);
         WF_self ->set(0, u0_self);
+
+        WF_other->get_last(u0_other); // redundant in first step
         WF_other->init_by_last();
         
         // required since interpolation happens on the receiving waveform
@@ -563,7 +564,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
             WF_other -> time_shift(window_length);
-            WF_recv -> time_shift(window_length); // new
+            WF_recv  -> time_shift(window_length);
         }
     } // endfor macrostep loop
     runtime = MPI_Wtime() - runtime; // runtime measurement end
@@ -574,6 +575,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
 void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_self, int steps_per_window_other){
     first_iter = true;
     steps_converged = 0;
+
     for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
         MPI_Barrier(MPI_COMM_WORLD);
         WF_iters++;
