@@ -23,7 +23,7 @@ def solve_exact(tf, Nx = None, Ny = None, dx = None, **kwargs):
     prob.get_ex_sol(tf)
     sol = prob.get_sol((xb - xa)*Nx + 1, Ny + 1, dx, xx = xa)
     prob.get_ex_flux(tf)
-    flux = prob.get_u_gamma(prob.unew)
+    flux = prob.get_u_gamma()
     return sol, flux
 
 def verify_time(prob = None, D = True, tf = 1, k = 10, kmin = 0, order = 1, savefig = None, **kwargs):

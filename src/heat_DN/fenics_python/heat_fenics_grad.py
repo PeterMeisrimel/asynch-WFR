@@ -31,17 +31,14 @@ class Problem_heat_D(Problem_heat):
     def get_flux(self):
         flux_sol = dol.assemble(self.F_flux)
         self.flux_f.vector().set_local(flux_sol)
-#        flux = self.get_u_gamma(self.flux_f)
         flux = self.get_u_gamma(self.flux_f)/self.dx
         flux[0], flux[-1] = 0, 0 # manually enforce zero flux at endpoints
-        print('fluxxxx1', flux)
         return flux
     
     def get_u0(self):
         return self.get_flux()
     
     def do_step(self, dt, ug):
-        print('do D step ', dt)
         self.dt.assign(dt)
         self.ugamma.update_vals(self.yy, ug) ## set boundary data
         dol.solve(self.lhs == self.rhs, self.usol, self.bcs)
@@ -85,7 +82,6 @@ class Problem_heat_D_weak(Problem_heat_D):
         flux_new = 2*self.get_u_gamma(self.flux_f)/self.dx - self.flux_old
         flux_new[0], flux_new[-1] = 0, 0
         self.flux_old = flux_new
-        print('fluxxx2', flux_new)
         return flux_new
     
     def reset(self):
@@ -139,8 +135,6 @@ if __name__ == '__main__':
     
     for i, (D_prob, savefig) in enumerate(zip([Problem_heat_D, Problem_heat_D_weak], ['grad_', 'weak_'])):
         solver = get_solve_WR(D_prob, Problem_heat_N)
-        if i == 0: 
-            continue
     
         ## verify dirichlet and neumann solvers on their own
         ## for refinement in time
@@ -154,7 +148,6 @@ if __name__ == '__main__':
         
         ## for refinement in space
         pp = {'tf': 1., **get_parameters(), 'xa': -1, 'xb': 1}
-        
 #        verify_space(D_prob, True, k = 8, order = 1, N_steps = 100, **pp, savefig = savefig)
 #        verify_space(D_prob, True, k = 8, order = 2, N_steps = 100, **pp, savefig = savefig)
         
@@ -164,7 +157,7 @@ if __name__ == '__main__':
     
         pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1, 'theta': 0.5}
         ## verify WR converges against monolithic solution
-        verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
+#        verify_with_monolithic(solve_WR = solver, k = 8, order = 1, **pp, savefig = savefig)
 #        verify_with_monolithic(solve_WR = solver, k = 8, order = 2, **pp, savefig = savefig)
         
         ## verify combined error, splitting + time int for decreasing dt
@@ -188,6 +181,6 @@ if __name__ == '__main__':
 
     pp = {'tf': 1., **get_parameters(), 'gridsize': 512, 'xa': -1, 'xb': 1, 'theta': 0.5}
 #    verify_comb_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),
-#                      k = 10, order = 1, **pp, savefig = '512_weak_')
+#                      k = 10, order = 2, **pp, savefig = '512_weak_')
 #    verify_comb_error(solve_WR = get_solve_WR(Problem_heat_D, Problem_heat_N),
-#                      k = 10, order = 1, **pp, savefig = '512_grad_')
+#                      k = 10, order = 2, **pp, savefig = '512_grad_')

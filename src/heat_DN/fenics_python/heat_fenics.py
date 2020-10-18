@@ -139,7 +139,6 @@ def get_solve_WR(Problem_heat_D, Problem_heat_N):
         
         pD.create_checkpoint(); pN.create_checkpoint()
         updates, rel_tol_fac = [], norm(ug0)
-        print('rel tolerance factor', rel_tol_fac)
         for j in range(maxiter):
             ugold = [np.copy(uu) for uu in ugnew]
             pD.reset(); pN.reset()

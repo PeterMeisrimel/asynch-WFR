@@ -18,6 +18,7 @@ from dune.fem.utility import lineSample,Sampler
 from dune.grid import cartesianDomain
 from dune.alugrid import aluConformGrid
 from dune.fem.function import uflFunction
+from dune.ufl import expression2GF
 
 ## standard heat equation: alpha u_t + lamda_diff \Delta u = 0
 ## assume interface to be at zero, spatial domain marked by xa and xb
@@ -51,11 +52,9 @@ class Problem_heat:
         ######
         self.t_fac = Constant(1., name = "t_fac")
 
-#        self.u0 = self.t_fac*500*ufl.sin(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1])
         self.u0 = uflFunction(self.mesh, name = "u0", order = self.space.order,
                               ufl = self.t_fac*500*ufl.sin(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1]))
         ######
-#        self.f0_expr = self.t_fac*lambda_diff*500*ufl.cos(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1])*ufl.pi/self.len
         self.f0_expr = uflFunction(self.mesh, name = "f0", order = self.space.order,
                                    ufl = self.t_fac*lambda_diff*500*ufl.cos(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1])*ufl.pi/self.len)
 #        exact_sol = ufl.exp(-(5*lambda_diff*ufl.pi**2*tend)/(4*alpha))*u0
@@ -88,7 +87,9 @@ class Problem_heat:
         self.create_checkpoint()
         self.reset()
 
-        self.u_gamma_f = lambda x: lineSample(x, [0., 0.], [0., 1.], self.NN)[1]
+        self.u_gamma_expr = expression2GF(self.unew.space.grid, self.unew, self.unew.space.order)
+        self.u_gamma_sampler = Sampler(self.u_gamma_expr)
+        self.u_gamma_f = lambda : self.u_gamma_sampler.lineSample([0., 0.], [0., 1.], self.NN)[1]
 
     def reset(self):
         self.uold.interpolate(self.u_checkpoint)
@@ -101,8 +102,8 @@ class Problem_heat:
     def create_checkpoint(self):
         self.u_checkpoint.interpolate(self.uold)
 
-    def get_u_gamma(self, ugamma):
-        return self.u_gamma_f(ugamma)
+    def get_u_gamma(self):
+        return self.u_gamma_f()
 
     def do_step(self, dt, ug):
         self.scheme.model.dt = dt
