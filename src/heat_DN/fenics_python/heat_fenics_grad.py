@@ -127,7 +127,7 @@ if __name__ == '__main__':
     pl.close('all')
     
     from heat_fenics import get_solve_WR
-    from verification import get_parameters, verify_with_monolithic, verify_comb_error, verify_comb_error_space, plot_theta, verify_self_time
+    from verification import get_parameters, verify_with_monolithic, verify_comb_error, verify_comb_error_space, plot_theta, verify_self_time, WR_full_error
     from verification_D_N import verify_time, verify_space
     
     #solv = get_solve_WR(Problem_heat_D_weak, Problem_heat_N)
@@ -179,8 +179,6 @@ if __name__ == '__main__':
 #        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
 #        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)
 
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 512, 'xa': -1, 'xb': 1, 'theta': 0.5}
-#    verify_comb_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),
-#                      k = 10, order = 2, **pp, savefig = '512_weak_')
-#    verify_comb_error(solve_WR = get_solve_WR(Problem_heat_D, Problem_heat_N),
-#                      k = 10, order = 2, **pp, savefig = '512_grad_')
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 256, 'xa': -1, 'xb': 1, 'theta': 0.5}
+    WR_full_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),
+                      k = 10, order = 2, **pp, savefig = '256_weak_')

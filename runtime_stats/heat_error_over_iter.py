@@ -7,7 +7,7 @@ Created on Wed Mar  6 13:31:49 2019
 """
 
 from __future__ import division
-from postprocessing_cpp_output import cut_path
+from postprocessing_cpp_output import cut_path, dune_preprocess
 from run_tolerances import run_tolerances
 import json
 import numpy as np
@@ -25,7 +25,7 @@ folder = 'heat_DN'
 exe = 'heat_DN'
 
 parameters = {'timesteps' : 20, 'macrosteps': 1, 'maxiter': 1000, 'tend': 0.1,
-              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1}
+              'gridsize': gridsize, 'alpha': 1, 'lambda': 0.1, 'u0': 2, 'errlog': 1, 'solvers': 2}
 
 relax = {'theta_relax1': 1, 'theta_relax2': 1, # jacobi relax
          'var_relax': 1,
@@ -69,6 +69,8 @@ for file in files:
     data = 0
     with open(file, 'r') as myfile:
         data = myfile.read().split('\n')[:-1]
+        
+    data = dune_preprocess(data)
         
     res = {'tol': tol, 'iters': 0, 'sol1': [], 'sol2': []}
     for line in data:

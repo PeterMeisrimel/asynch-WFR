@@ -215,6 +215,34 @@ def verify_self_time(solve_WR = None, tf = 1, k = 10, kmin = 0, theta = 1, order
     if savefig is not None:
         s = f'verify_self_time_ord_{order}.png'
         pl.savefig(savefig  + s, dpi = 100)
+        
+def WR_full_error(solve_WR = None, tf = 1, k = 10, kmin = 0, theta = 1, order = 1, savefig = None, maxiter = 100, **kwargs):
+    ## error of WR w.r.t. exact solution for decreasing dt and fixed dx (and small tolerance)
+    ref = solve_exact(tf, **kwargs)
+    
+    L2_fac = 1/(kwargs['gridsize'] + 1)
+    
+    dts, errs = [], []
+    for n_steps in [2**i for i in range(kmin, k)]:
+        dts.append(tf/n_steps)
+        u1, u2, ug, _, _ = solve_WR(tf, n_steps, n_steps, maxiter, 1e-10, theta, order = order, **kwargs)
+        errs.append(np.linalg.norm(ref - np.hstack((u1, ug, u2)), 2)*L2_fac)
+    for i in range(k-1-kmin):
+        print(np.log2(errs[i]/errs[i+1]))
+     
+    dts = np.array(dts)
+    pl.figure()
+    pl.loglog(dts, errs, label = 'err', marker = 'o')
+    pl.loglog(dts, dts, label = '1 st order', linestyle = '--')
+    pl.loglog(dts, dts**2, label = '2 nd order', linestyle = '--')
+    pl.legend()
+    pl.title('WR error space + time')
+    pl.xlabel('dt', position = (1.05, -1), labelpad = -20)
+    pl.ylabel('Err', position = (2., 1.05), labelpad = -50, rotation = 0)
+    pl.grid(True, which = 'major')
+    if savefig is not None:
+        s = f'WR_full_error_{order}.png'
+        pl.savefig(savefig  + s, dpi = 100)
 
 def plot_theta(solve_WR = None, tf = 1, N_steps = 50, order = 1, savefig = None, kmax = 6, res = 20, TOL = 1e-6, **kwargs):
     thetas = np.linspace(0, 1, res + 1)[1:]

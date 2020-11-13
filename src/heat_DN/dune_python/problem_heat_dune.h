@@ -32,7 +32,7 @@ public:
 
 class Problem_heat_dune_D : public Problem_heat_dune{
 public:
-    Problem_heat_dune_D(int gridsize, double a, double g):Problem_heat_dune(gridsize, a, g, "Problem_heat_D"){};
+    Problem_heat_dune_D(int gridsize, double a, double g):Problem_heat_dune(gridsize, a, g, "Problem_heat_D_weak"){};
     void do_step(double, double, double *, Waveform *);
 };
 

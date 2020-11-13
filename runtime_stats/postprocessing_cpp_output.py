@@ -35,6 +35,22 @@ def process_log(log):
         log_list.append([log[(s+i)*timesteps:(s+i+1)*timesteps] for i in range(m)])
         s += m
     return p, macro_steps, macro_list, log_list
+
+def dune_preprocess(data):
+    data_new = []
+    for line in data:
+        ## skip empty lines
+        if line == '':
+            continue
+        ## skip lines that contain non-numbers
+        for l in line.split():
+            try:
+                float(l)
+            except:
+                break
+        else:
+            data_new.append(line)
+    return data_new
         
 def process_output(path):
     dic = {}
@@ -66,7 +82,9 @@ def process_output(path):
         data = 0
         with open(file, 'r') as myfile:
             data = myfile.read().split('\n')[:-1]
-        
+            
+        data = dune_preprocess(data) ## dune preprocessing, i.e., filtering out string output from alugrid
+            
         res = {'tol': tol, 'iter': [], 'times': [], 'sol1': [], 'sol2': []}
         res_comm_log = {'tol': tol, 'msteps': [], 'mlog': [], 'log0': [], 'log1': []}
         for i in range(min(int(parameters['times'])*4, int(len(data)/2))):
