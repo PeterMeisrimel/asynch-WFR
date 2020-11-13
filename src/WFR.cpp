@@ -121,7 +121,7 @@ bool WFR::check_convergence(double WF_TOL){
                 throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
-//        std::cout << rel_update_fac << " update " << update << std::endl;
+        std::cout << rel_update_fac << " update " << update << std::endl;
         if (update/rel_update_fac < WF_TOL)
             return true;
     }// END ELSE
