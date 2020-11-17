@@ -5,8 +5,11 @@
 # Require CMake 3.5
 cmake_minimum_required(VERSION 3.5)
 
-set(PROJECT_NAME heat_DN)
-project(${PROJECT_NAME})
+set(PROJECT_NAME_HEAT heat_DN)
+project(${PROJECT_NAME_HEAT})
+
+set(PROJECT_NAME_EULER euler_DN)
+project(${PROJECT_NAME_EULER})
 
 # Set CMake behavior
 cmake_policy(SET CMP0004 NEW)
@@ -45,13 +48,15 @@ if (HAVE_NO_MULTLINE)
 endif()
 
 # Executable
-add_executable(${PROJECT_NAME} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL} ${SOURCES_FENICS_CPP} ${SOURCES_FENICS_PYTHON} ${SOURCES_DUNE_PYTHON})
+add_executable(${PROJECT_NAME_HEAT} main_heat.cpp ${SOURCES_BASE} ${SOURCES_LOCAL} ${SOURCES_FENICS_CPP} ${SOURCES_FENICS_PYTHON} ${SOURCES_DUNE_PYTHON})
+add_executable(${PROJECT_NAME_EULER} main_euler.cpp ${SOURCES_BASE} ${SOURCES_DUNE_PYTHON})
 ######################################
 # make sure this uses the correct python version, see above
 ######################################
-target_link_libraries(${PROJECT_NAME} dolfin python3.6m)
+target_link_libraries(${PROJECT_NAME_HEAT} dolfin python3.6m)
+target_link_libraries(${PROJECT_NAME_EULER} dolfin python3.6m) # should not need dolfin, but dolfin makes sure mpi is there
 
 # Test targets
-set(test_parameters -np 2 ${MPIEXEC_PARAMS} "./${PROJECT_NAME}")
-add_test(NAME ${PROJECT_NAME}_mpi COMMAND "mpirun" ${test_parameters})
-add_test(NAME ${PROJECT_NAME}_serial COMMAND ${PROJECT_NAME})
+set(test_parameters -np 2 ${MPIEXEC_PARAMS} "./${PROJECT_NAME_HEAT}")
+add_test(NAME ${PROJECT_NAME_HEAT}_mpi COMMAND "mpirun" ${test_parameters})
+add_test(NAME ${PROJECT_NAME_HEAT}_serial COMMAND ${PROJECT_NAME_HEAT})

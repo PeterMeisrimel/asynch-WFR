@@ -16,6 +16,7 @@ from dune.ufl import DirichletBC, Constant
 from dune.fem.scheme import galerkin as solutionScheme
 from dune.fem.utility import lineSample,Sampler
 from dune.grid import cartesianDomain
+#from dune.grid import cartesianDomain, yaspGrid
 from dune.alugrid import aluConformGrid
 from dune.fem.function import uflFunction
 from dune.ufl import expression2GF
@@ -25,7 +26,7 @@ from dune.ufl import expression2GF
 class Problem_heat:
     eps = 1e-8
     ## gridsize = number of internal variables
-    def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1, xb = 1, mono = True):
+    def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1, xb = 1, y = 1, mono = True, temp0 = None):
         ## n = gridsize = number of internal unknowns
         ## => n + 2 nodes per unit length
         ## => n + 1 cells per unit length
@@ -43,17 +44,23 @@ class Problem_heat:
             self.domain = cartesianDomain([self.xa, 0.], [self.xb, 1.], [self.len*(gridsize + 1), gridsize + 1])
         else:
             self.len = self.xb - self.xa ## length of x domain
-            self.domain = cartesianDomain([xa, 0.], [xb, 1.], [self.len*(gridsize + 1), gridsize + 1])
+            self.domain = cartesianDomain([xa, 0.], [xb, y], [self.len*(gridsize + 1), gridsize + 1])
 
         self.mesh = aluConformGrid(self.domain)
+#        self.mesh = yaspGrid(self.domain)
         self.space = solutionSpace(self.mesh, order = 1)
 
         self.x = ufl.SpatialCoordinate(ufl.triangle)
         ######
         self.t_fac = Constant(1., name = "t_fac")
-
-        self.u0 = uflFunction(self.mesh, name = "u0", order = self.space.order,
-                              ufl = self.t_fac*500*ufl.sin(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1]))
+        
+        
+        if temp0 is None:
+            self.u0 = uflFunction(self.mesh, name = "u0", order = self.space.order,
+                                  ufl = self.t_fac*500*ufl.sin(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1]))
+        else:
+            self.u0 = uflFunction(self.mesh, name = "u0", order = self.space.order,
+                                  ufl = Constant(temp0))
         ######
         self.f0_expr = uflFunction(self.mesh, name = "f0", order = self.space.order,
                                    ufl = self.t_fac*lambda_diff*500*ufl.cos(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1])*ufl.pi/self.len)
@@ -89,7 +96,8 @@ class Problem_heat:
 
         self.u_gamma_expr = expression2GF(self.unew.space.grid, self.unew, self.unew.space.order)
         self.u_gamma_sampler = Sampler(self.u_gamma_expr)
-        self.u_gamma_f = lambda : self.u_gamma_sampler.lineSample([0., 0.], [0., 1.], self.NN)[1]
+        if y >= 1: ## TODO: temp fix, make something proper for euler vs. heat problem
+            self.u_gamma_f = lambda : self.u_gamma_sampler.lineSample([0., 0.], [0., 1.], self.NN)[1]
 
     def reset(self):
         self.uold.interpolate(self.u_checkpoint)
@@ -126,7 +134,7 @@ class Problem_heat:
         res = np.zeros(Nx*Ny)
         sampler = Sampler(self.unew)
         for i in range(offset,  Nx):
-            res[(i-offset)*Ny:(i-offset+1)*Ny] = sampler.lineSample([xx + i*dx, 0.], [xx + i*dx, 1.], Ny)[1]
+            res[(i-offset)*Ny:(i-offset+1)*Ny] = sampler.lineSample([xx + i*dx, 0.], [xx + i*dx, self.y], Ny)[1]
         return res
 
     ######

@@ -15,7 +15,7 @@ June 2020
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
-Problem_heat_dune::Problem_heat_dune(int gridsize, double a, double g, const char* class_name){
+Problem_heat_dune::Problem_heat_dune(int gridsize, double a, double g, const char* py_file, const char* py_class){
     other_init_done = false;
     _length = gridsize + 2;
     _dx  = 1./(gridsize + 1);
@@ -28,18 +28,48 @@ Problem_heat_dune::Problem_heat_dune(int gridsize, double a, double g, const cha
 //    PyRun_SimpleString("os.environ['OMP_NUM_THREADS'] = '1'");
     
     // import file, resp. python script
-    PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_dune_grad"));
+    PyObject *pFile = PyImport_Import(PyUnicode_FromString(py_file));
     assert(pFile != NULL);
     
     PyObject *pDict = PyModule_GetDict(pFile);
     // get class name to initialize from dictionary
-    PyObject *pClass_name = PyDict_GetItemString(pDict, class_name);
+    PyObject *pClass_name = PyDict_GetItemString(pDict, py_class);
     
     // initialize values for constructor class
     PyObject *pClassCall = PyTuple_New(3);
     PyTuple_SetItem(pClassCall, 0, PyLong_FromLong((long)gridsize));
     PyTuple_SetItem(pClassCall, 1, PyFloat_FromDouble(a));
     PyTuple_SetItem(pClassCall, 2, PyFloat_FromDouble(g));
+    
+    // initialize class object
+    pClass_obj = PyObject_CallObject(pClass_name, pClassCall);
+}
+
+Problem_heat_dune_euler_fluid::Problem_heat_dune_euler_fluid(int gridsize){
+    other_init_done = false;
+    _length = gridsize + 2;
+    _dx  = 1./(gridsize + 1);
+    
+//     this appears to change the paths to the current directory? without it, the import fails
+//    PyRun_SimpleString("import sys; import os");
+//    PyRun_SimpleString("sys.path.append(os.getcwd())");
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append('/home/peter/asynch-WFR/src/heat_DN/dune_python/')");
+//    PyRun_SimpleString("os.environ['OMP_NUM_THREADS'] = '1'");
+    
+    // import file, resp. python script
+    PyObject *pFile = PyImport_Import(PyUnicode_FromString("euler"));
+    assert(pFile != NULL);
+    
+    PyObject *pDict = PyModule_GetDict(pFile);
+    // get class name to initialize from dictionary
+    PyObject *pClass_name = PyDict_GetItemString(pDict, "Problem_heat_euler_fluid");
+    
+    // initialize values for constructor class
+    PyObject *pClassCall = PyTuple_New(3);
+    PyTuple_SetItem(pClassCall, 0, PyLong_FromLong((long)gridsize));
+    PyTuple_SetItem(pClassCall, 1, PyLong_FromLong((long)2));
+    PyTuple_SetItem(pClassCall, 2, PyLong_FromLong((long)2));
     
     // initialize class object
     pClass_obj = PyObject_CallObject(pClass_name, pClassCall);
@@ -113,6 +143,30 @@ void Problem_heat_dune_N::do_step(double t, double dt, double *u_out, Waveform *
         u_out[i] = u_out_local[i];
     
     Py_XDECREF(pInput_new);
+    Py_XDECREF(pOutput);
+    Py_XDECREF(pOutput_arr);
+}
+
+void Problem_heat_dune_euler_fluid::do_step(double t, double dt, double *u_out, Waveform *WF_in){
+    Pt = PyFloat_FromDouble(t);
+    Pdt = PyFloat_FromDouble(dt);
+    
+    npy_intp dims[1]{_length_other};
+    double *cInput = new double[_length_other];
+    WF_in->eval(t + dt, cInput);
+    PyObject *pInput = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, reinterpret_cast<void*>(cInput));
+    Py_XINCREF(pInput);
+    
+    PyObject *pOutput = PyObject_CallMethodObjArgs(pClass_obj, PyUnicode_FromString("do_step"), Pt, Pdt, pInput, NULL);
+    Py_XINCREF(pOutput);
+    PyArrayObject *pOutput_arr = reinterpret_cast<PyArrayObject*>(pOutput);
+    Py_XINCREF(pOutput_arr);
+    double * u_out_local;
+    u_out_local = reinterpret_cast<double*>(PyArray_DATA(pOutput_arr));
+    for(int i = 0; i < _length; i++)
+        u_out[i] = u_out_local[i];
+        
+    Py_XDECREF(pInput);
     Py_XDECREF(pOutput);
     Py_XDECREF(pOutput_arr);
 }
