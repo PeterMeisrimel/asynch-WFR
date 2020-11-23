@@ -14,7 +14,8 @@ from dune.grid import reader
 from dune.fem.space import dgonb
 from dune.femdg import femDGOperator
 from dune.femdg.rk import femdgStepper
-from dune.alugrid import aluSimplexGrid as simplexGrid
+#from dune.alugrid import aluSimplexGrid as simplexGrid
+from dune.alugrid import aluSimplexGrid
 from dune.ufl import expression2GF, Constant
 #from dune.fem.utility import lineSample
 from dune.fem.utility import Sampler
@@ -182,7 +183,8 @@ class Problem_heat_euler_fluid:
         self.Model = Model()
         
         self.domain = (reader.dgf, "triangle.dgf") ## read domain specifications from file
-        self.gridView = simplexGrid(self.domain, dimgrid = 2) ## grid with triangles, using alugrid module
+#        self.gridView = simplexGrid(self.domain, dimgrid = 2) ## grid with triangles, using alugrid module
+        self.gridView = aluSimplexGrid(self.domain, serial = True, dimgrid = 2)
         self.space = dgonb(self.gridView, dimRange = 4)
         self.uh = self.space.interpolate(self.Model.u0, name = "solution")
         self.u_checkpoint = self.space.interpolate(self.Model.u0, name = "checkpoint")

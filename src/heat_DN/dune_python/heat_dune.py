@@ -14,19 +14,31 @@ import ufl
 from dune.fem.space import lagrange as solutionSpace
 from dune.ufl import DirichletBC, Constant
 from dune.fem.scheme import galerkin as solutionScheme
-from dune.fem.utility import lineSample,Sampler
+from dune.fem.utility import Sampler
 from dune.grid import cartesianDomain
-#from dune.grid import cartesianDomain, yaspGrid
-from dune.alugrid import aluConformGrid
+from dune.alugrid import aluSimplexGrid
 from dune.fem.function import uflFunction
 from dune.ufl import expression2GF
+
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 ## standard heat equation: alpha u_t + lamda_diff \Delta u = 0
 ## assume interface to be at zero, spatial domain marked by xa and xb
 class Problem_heat:
     eps = 1e-8
     ## gridsize = number of internal variables
-    def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1, xb = 1, y = 1, mono = True, temp0 = None):
+    def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1., xb = 1., y = 1., mono = True, temp0 = None):
+        print('grid limiters ', rank, size, xa, xb, y, mono, temp0)
+        self.y = y
+        xa, xb, y = float(xa), float(xb), float(y)
+        assert self.y > 0
+        assert xa <= 0
+        assert xb >= 0
         ## n = gridsize = number of internal unknowns
         ## => n + 2 nodes per unit length
         ## => n + 1 cells per unit length
@@ -40,14 +52,13 @@ class Problem_heat:
 
         if mono:
             self.xa, self.xb = xa, xb
-            self.len = self.xb - self.xa ## length of x domain
-            self.domain = cartesianDomain([self.xa, 0.], [self.xb, 1.], [self.len*(gridsize + 1), gridsize + 1])
+            self.len = int(self.xb - self.xa) ## length of x domain
+            self.domain = cartesianDomain([self.xa, 0.], [self.xb, self.y], [self.len*(gridsize + 1), gridsize + 1])
         else:
-            self.len = self.xb - self.xa ## length of x domain
-            self.domain = cartesianDomain([xa, 0.], [xb, y], [self.len*(gridsize + 1), gridsize + 1])
+            self.len = int(self.xb - self.xa) ## length of x domain
+            self.domain = cartesianDomain([xa, 0.], [xb, self.y], [self.len*(gridsize + 1), gridsize + 1])
 
-        self.mesh = aluConformGrid(self.domain)
-#        self.mesh = yaspGrid(self.domain)
+        self.mesh = aluSimplexGrid(self.domain, serial = True)
         self.space = solutionSpace(self.mesh, order = 1)
 
         self.x = ufl.SpatialCoordinate(ufl.triangle)
@@ -96,8 +107,8 @@ class Problem_heat:
 
         self.u_gamma_expr = expression2GF(self.unew.space.grid, self.unew, self.unew.space.order)
         self.u_gamma_sampler = Sampler(self.u_gamma_expr)
-        if y >= 1: ## TODO: temp fix, make something proper for euler vs. heat problem
-            self.u_gamma_f = lambda : self.u_gamma_sampler.lineSample([0., 0.], [0., 1.], self.NN)[1]
+        if self.y >= 1: ## TODO: temp fix, make something proper for euler vs. heat problem
+            self.u_gamma_f = lambda : self.u_gamma_sampler.lineSample([0., 0.], [0., self.y], self.NN)[1]
 
     def reset(self):
         self.uold.interpolate(self.u_checkpoint)
@@ -131,9 +142,11 @@ class Problem_heat:
             self.uold.assign(self.unew)
 
     def get_sol(self, Nx, Ny, dx, xx = 0, offset = 0):
+        Nx, Ny = int(Nx), int(Ny)
         res = np.zeros(Nx*Ny)
         sampler = Sampler(self.unew)
         for i in range(offset,  Nx):
+            print(rank, size, 'sampling x = ', xx + i*dx, 'y = 0. to ', self.y)
             res[(i-offset)*Ny:(i-offset+1)*Ny] = sampler.lineSample([xx + i*dx, 0.], [xx + i*dx, self.y], Ny)[1]
         return res
 
@@ -199,12 +212,34 @@ def get_solve_WR(Problem_heat_D, Problem_heat_N):
     return solve_WR
 
 if __name__ == '__main__':
-    from verification import get_parameters, verify_space_error, verify_mono_time
-    savefig = 'mono_'
+    
+    tf = 1
+    gridsize = 10
+    xa, xb = -1., 1.
+    Nx, Ny = gridsize + 1, gridsize + 1
+    dx = 1./(gridsize + 1)
+    
+    if rank == 0:
+        print('rank 0 barrier')
+#        comm.Barrier()
+        print('rank 0 cleared')
+    
+    prob = Problem_heat(gridsize, 1., 0.1, 2, xa, xb, 1.)
+    prob.solve(1, 10)
+    prob.get_sol((xb - xa)*Nx + 1, Ny + 1, dx, xx = xa)
+    
+    if rank == 1:
+        print('rank 1 barrier')
+#        comm.Barrier()
+        print('rank 1 cleared')
+    
+#    from verification import get_parameters, verify_space_error, verify_mono_time
+#    savefig = 'mono_'
     ## verify space order of monolithic solution
-    verify_space_error(1, k = 8, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
+#    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
+#    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1., xb = 1., savefig = None)
 
     ## verify time order with itself
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1, 'xb': 1}
-    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
-    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)
+#    pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1., 'xb': 1.}
+#    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
+#    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)
