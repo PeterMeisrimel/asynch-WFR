@@ -33,7 +33,8 @@ class WFR{
 protected:
     double _t_end;
     Problem * prob_self;
-
+    
+    MPI_Comm mpi_comm;
     int np;
 
     int       ID_SELF     ,  ID_OTHER;
@@ -74,8 +75,9 @@ protected:
     virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);
     virtual void integrate_window(int start, Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);
 public:
-    WFR(){
-        MPI_Comm_size(MPI_COMM_WORLD, &np);
+    WFR(MPI_Comm comm){
+        mpi_comm = comm;
+        MPI_Comm_size(mpi_comm, &np);
     };
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
                      int conv_check = 1, int steps_converged_in = 1, bool errorlogging = false) = 0;
@@ -102,7 +104,7 @@ protected:
     bool FIRST; // to define the ordering for coupling two problems, true = 1 -> 2 ordering
     double theta_relax_self, theta_relax_other;
 public:
-    WFR_serial() : WFR(){
+    WFR_serial(MPI_Comm comm) : WFR(comm){
         ID_SELF = 0;
         ID_OTHER = 1;
     };
@@ -119,7 +121,7 @@ public:
 
 class WFR_parallel: public WFR{
 public:
-    WFR_parallel(int id_in_self, int id_in_other) : WFR(){
+    WFR_parallel(MPI_Comm comm, int id_in_self, int id_in_other) : WFR(comm){
         ID_SELF = id_in_self;
         ID_OTHER = id_in_other;
     };

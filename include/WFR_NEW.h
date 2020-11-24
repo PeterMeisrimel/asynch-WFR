@@ -25,7 +25,7 @@ protected:
     int * iter_per_macro; // store number of iterations per macro step
     int log_p, log_m; // idx for writing into comm_pattern and iter_per_macro
 public:
-    WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p);
+    WFR_NEW(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p);
 
     virtual void run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other,
                      int conv_check, int steps_converged_required_in, bool errlogging);
@@ -49,7 +49,7 @@ private:
 public:
 //    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
 
-    WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p);
+    WFR_NEW_var_relax(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p);
     
     virtual void set_relax_params(double t1, double t2, double t3){
         theta_relax = t1; // jacobi (of other)
@@ -98,7 +98,7 @@ private:
 public:
 //    virtual void set_conv_check_WF_ptr(int conv_which, bool match_which_conv_relax);
 
-    WFR_NEW_var_relax_MR(int id_in_self, int id_in_other, double tend, Problem * p);
+    WFR_NEW_var_relax_MR(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p);
     
     virtual void set_relax_params(double t1, double t2, double t3){
         theta_relax = t1; // jacobi (of other)

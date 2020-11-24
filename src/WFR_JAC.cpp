@@ -11,7 +11,7 @@ December 2018
 #include <stdexcept>
 #include <iostream>
 
-WFR_JAC::WFR_JAC(int id_in_self, int id_in_other, double t_end, Problem * p): WFR_parallel(id_in_self, id_in_other){
+WFR_JAC::WFR_JAC(MPI_Comm comm, int id_in_self, int id_in_other, double t_end, Problem * p): WFR_parallel(comm, id_in_self, id_in_other){
     _t_end    = t_end;
     prob_self = p;
     WF_iters = 0;
@@ -27,7 +27,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
                  &DIM_OTHER, 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
     prob_self->init_other(DIM_OTHER);
 
     u0_self  = new double[DIM_SELF];
@@ -55,7 +55,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  u0_other, DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
 
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
@@ -73,7 +73,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(mpi_comm);
     runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){
         prob_self->create_checkpoint();
@@ -83,7 +83,7 @@ void WFR_JAC::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
 
         get_relative_tol(); // get tolerance for relative update termination check
       
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(mpi_comm);
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self ->time_shift(window_length);
@@ -105,7 +105,7 @@ void WFR_JAC::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_se
         integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax);
         MPI_Sendrecv(WF_self_data , (steps_per_window_self  + 1) * DIM_SELF , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
                      WF_other_data, (steps_per_window_other + 1) * DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     mpi_comm, MPI_STATUS_IGNORE);
 
         if (check_convergence(WF_TOL)){
             steps_converged++;

@@ -106,8 +106,16 @@ void process_inputs(int argc, char **argv,
 
 void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double t_end, int timesteps, int argc, char *argv[]){
     int np, ID_SELF, ID_OTHER;
-    MPI_Comm_rank(MPI_COMM_WORLD, &ID_SELF);
-    MPI_Comm_size(MPI_COMM_WORLD, &np);
+	// ID_SELF and ID_OTHER are already used before the call of this function, which should be fixed at some point, but seems to work for now
+	// possible solution: set ranks based on which problem pointer is NULL
+    
+    // if one wanted to use different communicators for the different problem,
+    // this would probably have to be in the initialization of the problems?
+    MPI_Comm mpi_comm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    
+    MPI_Comm_rank(mpi_comm, &ID_SELF);
+    MPI_Comm_size(mpi_comm, &np);
     ID_OTHER = (ID_SELF + 1)%np;
     
     // default init parameters
@@ -150,24 +158,24 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     switch(runmode){
         case 1:{ // Gauss-Seidel (GS), 1 -> 2 ordering
             if (np != 1)
-                MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_GS(t_end, prob1, prob2, true);
+                MPI_Abort(mpi_comm, 1);
+            wfr_method = new WFR_GS(mpi_comm, t_end, prob1, prob2, true);
             
             wfr_method -> set_relax_params(theta_relax_a_1, theta_relax_a_2);
             break;
         }
         case 2:{ // Gauss-Seidel (GS), 2 -> 1 ordering
             if (np != 1)
-                MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_GS(t_end, prob1, prob2, false);
+                MPI_Abort(mpi_comm, 1);
+            wfr_method = new WFR_GS(mpi_comm, t_end, prob1, prob2, false);
             
             wfr_method -> set_relax_params(theta_relax_b_1, theta_relax_b_2);
             break;
         }
         case 3:{ // Jacobi (JAC)
             if (np != 2)
-                MPI_Abort(MPI_COMM_WORLD, 1);
-            wfr_method = new WFR_JAC(ID_SELF, ID_OTHER, t_end, prob);
+                MPI_Abort(mpi_comm, 1);
+            wfr_method = new WFR_JAC(mpi_comm, ID_SELF, ID_OTHER, t_end, prob);
             
             if (ID_SELF == 0)
                 wfr_method -> set_relax_params(theta_relax1);
@@ -177,21 +185,21 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
         }
         case 4:{ // NEW method, still needs better name
             if (np != 2)
-                MPI_Abort(MPI_COMM_WORLD, 1);
+                MPI_Abort(mpi_comm, 1);
             // variable relaxation
 //            if (var_relax){
             if (var_relax > 0){
                 if (var_relax == 1)
-                    wfr_method = new WFR_NEW_var_relax(ID_SELF, ID_OTHER, t_end, prob);
+                    wfr_method = new WFR_NEW_var_relax(mpi_comm, ID_SELF, ID_OTHER, t_end, prob);
                 else if (var_relax == 2)
-                    wfr_method = new WFR_NEW_var_relax_MR(ID_SELF, ID_OTHER, t_end, prob);
+                    wfr_method = new WFR_NEW_var_relax_MR(mpi_comm, ID_SELF, ID_OTHER, t_end, prob);
                 // relaxation parameters reversed here, since relaxation is done on the receiving end
                 if (ID_SELF == 0)
                     wfr_method -> set_relax_params(theta_relax2, theta_relax_a_2, theta_relax_b_2);
                 else
                     wfr_method -> set_relax_params(theta_relax1, theta_relax_a_1, theta_relax_b_1);
             }else{ // fixed relaxation
-                wfr_method = new WFR_NEW(ID_SELF, ID_OTHER, t_end, prob);
+                wfr_method = new WFR_NEW(mpi_comm, ID_SELF, ID_OTHER, t_end, prob);
                 if (ID_SELF == 0)
                     wfr_method -> set_relax_params(theta_relax1);
                 else
@@ -216,7 +224,7 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
     if (not errlogging){
         wfr_method -> write_results();
     }else{
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(mpi_comm);
         wfr_method -> write_error_log();
     }
 }

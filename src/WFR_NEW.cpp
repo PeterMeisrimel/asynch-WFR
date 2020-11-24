@@ -14,7 +14,7 @@ December 2018
 #include <iostream>
 #include "utils.h"
 
-WFR_NEW::WFR_NEW(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_parallel(id_in_self, id_in_other){
+WFR_NEW::WFR_NEW(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p) : WFR_parallel(comm, id_in_self, id_in_other){
     _t_end = tend;
     prob_self = p;
     WF_iters = 0;
@@ -30,7 +30,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
                  &DIM_OTHER, 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
     prob_self->init_other(DIM_OTHER);
 
     u0_self  = new double[DIM_SELF];
@@ -58,7 +58,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  u0_other, DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
 
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
@@ -66,7 +66,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
         times_other[i] = i*dt_other;
 	}
 
-    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data, &WIN_data);
+    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, mpi_comm, &WF_other_data, &WIN_data);
     WF_other = new Waveform_locking(WF_LEN_OTHER, DIM_OTHER, times_other, WF_other_data, &WIN_data, ID_SELF);
     WF_other->set_last(u0_other);
 
@@ -76,7 +76,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(mpi_comm);
     runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){ // Macro step loop
         prob_self -> create_checkpoint();
@@ -87,7 +87,7 @@ void WFR_NEW::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_sel
         
         get_relative_tol(); // get tolerance for relative update termination check
         
-        MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
+        MPI_Barrier(mpi_comm); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
@@ -111,7 +111,7 @@ void WFR_NEW::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per_window_se
         integrate_window(WF_self, WF_other, steps_per_window_self, prob_self, theta_relax);
 
         // all outstanding RMA operations done up to this point
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(mpi_comm);
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_data); // Shared as it is read only // excl since one is writing in own window of sorts?
         MPI_Win_sync(WIN_data); // lock neccessary in intel MPI
         MPI_Win_unlock(ID_SELF, WIN_data);
@@ -165,7 +165,7 @@ void WFR_NEW::integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps,
 // OPT RELAX TESTING
 /////////////////////////////////
 
-WFR_NEW_var_relax::WFR_NEW_var_relax(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(id_in_self, id_in_other, tend, p){}
+WFR_NEW_var_relax::WFR_NEW_var_relax(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(comm, id_in_self, id_in_other, tend, p){}
 
 void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, 
                             int conv_check, int nsteps_conv_check, bool errlogging){
@@ -177,7 +177,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
                  &DIM_OTHER, 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
     prob_self->init_other(DIM_OTHER);
 
     u0_self  = new double[DIM_SELF];
@@ -203,7 +203,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     // initialize other waveform
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  u0_other, DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
     
     times_other = new double[WF_LEN_OTHER];
     double dt_other = _t_end/steps_other;
@@ -216,10 +216,10 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     WF_other -> set_last(u0_other);
 
     // Window & Waveform for receiving data
-    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_recv_data, &WIN_data);
+    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, mpi_comm, &WF_recv_data, &WIN_data);
     WF_recv = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data);
     // flags for which data has already been received
-    MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_recv_flag, &WIN_recv_flag);
+    MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, mpi_comm, &WF_other_data_recv_flag, &WIN_recv_flag);
     // init flags
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_recv_flag); // Excl, writing
     for (int i = 1; i < WF_LEN_OTHER; i++)
@@ -245,7 +245,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(mpi_comm);
     runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){ // Macro step loop
         prob_self -> create_checkpoint();
@@ -253,7 +253,7 @@ void WFR_NEW_var_relax::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int
         WF_self ->set(0, u0_self);
         WF_other->init_by_last();
         get_relative_tol(); // get tolerance for relative update termination check
-        MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
+        MPI_Barrier(mpi_comm); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
@@ -270,7 +270,7 @@ void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
     first_iter = true;
     steps_converged = 0;
     for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(mpi_comm);
         WF_iters++;
 
         integrate_window(WF_self, WF_other, steps_per_window_self, prob_self);
@@ -280,7 +280,7 @@ void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
         // this seems unnecessarily confusing, possibly find better names?
         MPI_Sendrecv(relax_self_done_flag, steps_per_window_other + 1, MPI_C_BOOL, ID_OTHER, TAG_MISC,
                      relax_other_done_flag, steps_per_window_self + 1, MPI_C_BOOL, ID_OTHER, TAG_MISC,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     mpi_comm, MPI_STATUS_IGNORE);
 
         // all outstanding RMA (send) operations done up to this point
         // sync data
@@ -322,7 +322,7 @@ void WFR_NEW_var_relax::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_per
         // the exception is the convergence check, for which one need the relaxed data
         MPI_Sendrecv((*WF_other)[steps_per_window_other], DIM_OTHER , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
                      (*WF_self)[steps_per_window_self], DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     mpi_comm, MPI_STATUS_IGNORE);
 
         if (check_convergence(WF_TOL)){ // convergence or maximum number of iterations reached
             steps_converged++;
@@ -399,7 +399,7 @@ void WFR_NEW_var_relax::integrate_window(Waveform * WF_calc, Waveform * WF_src, 
 // OPT RELAX TESTING + MULTIRATE
 /////////////////////////////////
 
-WFR_NEW_var_relax_MR::WFR_NEW_var_relax_MR(int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(id_in_self, id_in_other, tend, p){}
+WFR_NEW_var_relax_MR::WFR_NEW_var_relax_MR(MPI_Comm comm, int id_in_self, int id_in_other, double tend, Problem * p) : WFR_NEW(comm, id_in_self, id_in_other, tend, p){}
 
 void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self, int steps_other, 
                             int conv_check, int nsteps_conv_check, bool errlogging){
@@ -411,7 +411,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     // Get vectors length from other problem
     MPI_Sendrecv(&DIM_SELF , 1, MPI_INT, ID_OTHER, TAG_DATA,
                  &DIM_OTHER, 1, MPI_INT, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
     prob_self->init_other(DIM_OTHER);
 
     u0_self  = new double[DIM_SELF];
@@ -440,7 +440,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     // contain relaxed data, thus needs to be of length size_shared_grid
     MPI_Sendrecv(u0_self , DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
                  u0_other, DIM_OTHER, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 mpi_comm, MPI_STATUS_IGNORE);
                  
     // times for receiving data window; required in construction of shared time grid
     times_other = new double[WF_LEN_OTHER];
@@ -506,10 +506,10 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     WF_other -> set_last(u0_other);
 
     // Window & Waveform for receiving data
-    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_recv_data, &WIN_data);
+    MPI_Win_allocate(WF_LEN_OTHER * DIM_OTHER * sizeof(double), sizeof(double), MPI_INFO_NULL, mpi_comm, &WF_recv_data, &WIN_data);
     WF_recv = new Waveform(WF_LEN_OTHER, DIM_OTHER, times_other, WF_recv_data);
     // flags for which data has already been received
-    MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, MPI_COMM_WORLD, &WF_other_data_recv_flag, &WIN_recv_flag);
+    MPI_Win_allocate(WF_LEN_OTHER * sizeof(bool), sizeof(bool), MPI_INFO_NULL, mpi_comm, &WF_other_data_recv_flag, &WIN_recv_flag);
     // init flags
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, ID_SELF, 0, WIN_recv_flag); // Excl, writing
     WF_other_data_recv_flag[0] = true;
@@ -543,7 +543,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
     double window_length = _t_end/steps_macro;
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
     
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(mpi_comm);
     runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){ // Macro step loop
         prob_self -> create_checkpoint();
@@ -559,7 +559,7 @@ void WFR_NEW_var_relax_MR::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, 
         MPI_Win_unlock(ID_SELF, WIN_data);
         
         get_relative_tol(); // get tolerance for relative update termination check
-        MPI_Barrier(MPI_COMM_WORLD); // not quite sure if needed
+        MPI_Barrier(mpi_comm); // not quite sure if needed
         do_WF_iter(WF_TOL, WF_MAX_ITER, WF_LEN_SELF - 1, WF_LEN_OTHER - 1);
         if(i != steps_macro - 1){
             WF_self  -> time_shift(window_length);
@@ -577,7 +577,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
     steps_converged = 0;
 
     for(int i = 0; i < WF_MAX_ITER; i++){ // Waveform loop
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(mpi_comm);
         WF_iters++;
         
         integrate_window(WF_self, WF_other, steps_per_window_self, prob_self);
@@ -586,7 +586,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
         // having this be of length size_shared_grid might not be necessary, but it is simple for now
         MPI_Sendrecv(relax_self_done_flag, size_shared_grid, MPI_C_BOOL, ID_OTHER, TAG_MISC,
                      relax_other_done_flag, size_shared_grid, MPI_C_BOOL, ID_OTHER, TAG_MISC,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     mpi_comm, MPI_STATUS_IGNORE);
 
         // all outstanding RMA (send) operations done up to this point, since SendRecv is passed
         // sync data
@@ -645,7 +645,7 @@ void WFR_NEW_var_relax_MR::do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_
         // the exception is the convergence check, for which one need the relaxed data
         MPI_Sendrecv((*WF_other)[size_shared_grid-1], DIM_OTHER , MPI_DOUBLE, ID_OTHER, TAG_DATA, 
                      (*WF_self)[steps_per_window_self], DIM_SELF, MPI_DOUBLE, ID_OTHER, TAG_DATA,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     mpi_comm, MPI_STATUS_IGNORE);
 
         if (check_convergence(WF_TOL)){ // convergence or maximum number of iterations reached
             steps_converged++;

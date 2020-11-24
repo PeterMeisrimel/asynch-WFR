@@ -11,7 +11,7 @@ December 2018
 #include <stdexcept>
 #include <iostream>
 
-WFR_GS::WFR_GS(double t_end, Problem * p1, Problem * p2, bool first) : WFR_serial(){
+WFR_GS::WFR_GS(MPI_Comm comm, double t_end, Problem * p1, Problem * p2, bool first) : WFR_serial(comm){
     _t_end   = t_end;
     prob_self  = p1;
     prob_other = p2;
@@ -70,7 +70,7 @@ void WFR_GS::run(double WF_TOL, int WF_MAX_ITER, int steps_macro, int steps_self
 
     norm_factor = prob_self -> get_norm_factor(); // implicitly assumed to be identical for both subproblems
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(mpi_comm);
     runtime = MPI_Wtime(); // runtime measurement start
     for(int i = 0; i < steps_macro; i++){
         prob_self->create_checkpoint();

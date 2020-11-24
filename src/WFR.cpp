@@ -149,16 +149,16 @@ void WFR_parallel::write_results(){
     WF_self -> get_last(sol);
     
     MPI_Sendrecv(&sol_size, 1, MPI_INT, ID_OTHER, 0,
-                 &sol_other_size, 1, MPI_INT, ID_OTHER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 &sol_other_size, 1, MPI_INT, ID_OTHER, 0, mpi_comm, MPI_STATUS_IGNORE);
     
     sol_other = new double[sol_other_size];
     MPI_Sendrecv(sol, sol_size, MPI_DOUBLE, ID_OTHER, 1,
-                 sol_other, sol_other_size, MPI_DOUBLE, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 sol_other, sol_other_size, MPI_DOUBLE, ID_OTHER, 1, mpi_comm, MPI_STATUS_IGNORE);
     
     runtime_self = get_runtime();
     runtime_other = 0;
     MPI_Sendrecv(&runtime_self,  1, MPI_DOUBLE, ID_OTHER, 2,
-                 &runtime_other, 1, MPI_DOUBLE, ID_OTHER, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 &runtime_other, 1, MPI_DOUBLE, ID_OTHER, 2, mpi_comm, MPI_STATUS_IGNORE);
     
     WFR::write_results();
 }
@@ -181,8 +181,10 @@ void WFR::write_results(){
 void WFR_serial::init_error_log(int steps_macro, int WR_MAXITER){
     err_log_counter = 0;
     if (log_errors){
-        if (steps_macro != 1)
-            MPI_Abort(MPI_COMM_WORLD, 2);
+        if (steps_macro != 1){
+            std::cout << "Error logging not functional when using several macrosteps" << std::endl;
+            MPI_Abort(mpi_comm, 2);
+        }
         error_log = new double[(WR_MAXITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
 
@@ -197,7 +199,7 @@ void WFR_parallel::init_error_log(int steps_macro, int WR_MAXITER){
     err_log_counter = 0;
     if (log_errors){
         if (steps_macro != 1)
-            MPI_Abort(MPI_COMM_WORLD, 2);
+            MPI_Abort(mpi_comm, 2);
 
         error_log = new double[(WR_MAXITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
@@ -227,7 +229,7 @@ void WFR_parallel::write_error_log(){
         error_other_log = new double[err_log_counter*DIM_OTHER];
 
         MPI_Sendrecv(error_log, err_log_counter*DIM_SELF, MPI_DOUBLE, ID_OTHER, 1,
-                     error_other_log, err_log_counter*DIM_OTHER, MPI_DOUBLE, ID_OTHER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                     error_other_log, err_log_counter*DIM_OTHER, MPI_DOUBLE, ID_OTHER, 1, mpi_comm, MPI_STATUS_IGNORE);
         WFR::write_error_log();
     }
 }
