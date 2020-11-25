@@ -187,7 +187,6 @@ void setup_and_run_WFR(Problem * prob1, Problem * prob2, int which_conv, double 
             if (np != 2)
                 MPI_Abort(mpi_comm, 1);
             // variable relaxation
-//            if (var_relax){
             if (var_relax > 0){
                 if (var_relax == 1)
                     wfr_method = new WFR_NEW_var_relax(mpi_comm, ID_SELF, ID_OTHER, t_end, prob);

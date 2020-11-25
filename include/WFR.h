@@ -63,13 +63,14 @@ protected:
 
     // gathering and printing of results
     int WF_iters, sol_size, sol_other_size, iters;
-    double * sol, *sol_other;
+    double *sol, *sol_other;
     double runtime, runtime_self, runtime_other;
 
     // logging of error over iterations
     bool log_errors;
     int err_log_counter;
-    double * error_log, * error_other_log;
+    double *error_log, *error_other_log;
+    double *update_log, *runtimes_log;
 
     virtual void do_WF_iter(double WF_TOL, int WF_MAX_ITER, int steps_self, int steps_other) = 0;
     virtual void integrate_window(Waveform * WF_calc, Waveform * WF_src, int steps_self, Problem * p, double theta_relax);

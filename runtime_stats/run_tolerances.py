@@ -14,6 +14,7 @@ import json
 
 def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', # base inputs
                    tolerances = None, run_names = None, runmodes = None, ref_run_name = None, # mandatory list based inputs
+                   errorlogging = False, ## run only last tolerances and extract other results from logs
                    **kwargs): # optional list based inputs
     # name as in base name for output and such
     # non-list based inputs go into "parameters"
@@ -33,10 +34,14 @@ def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', #
         if len(labels) != len(run_names): raise ValueError('number of label names does not match number of run_names')
         del kwargs['labels']
     
-    
     # verify all input lists are of same length
     s = set([len(kwargs[key]) for key in kwargs.keys()] + [len(i) for i in [run_names, runmodes]])
     if len(s) > 1: raise ValueError('Lengths of input lists do not match up')
+    
+    ## cut down tolerances if errorlogging
+    tolerances_org = tolerances.copy()
+    if errorlogging:
+        tolerances = tolerances[-2:]
     
     time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')[:-7]
     
@@ -57,7 +62,8 @@ def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', #
     shared_par = [folder, exe, output_dir, out_files, parameters, times, tolerances, ref_run_name, run_prefix]
     # SERIAL, 1 processor, 'GS' in runmode as indicator
     serial_kwargs = {'runmodes': [r for r in runmodes if 'GS' in r],
-                     'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' in r]}
+                     'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' in r],
+                     'errorlogging': errorlogging}
     for key in kwargs.keys():
         serial_kwargs[key] = [kwargs[key][i] for i, r in enumerate(runmodes) if 'GS' in r]
         
@@ -66,7 +72,8 @@ def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', #
     
     # PARALLEL, 2 processors
     par_kwargs = {'runmodes': [r for r in runmodes if 'GS' not in r],
-                  'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' not in r]}
+                  'run_names': [run_names[i] for i, r in enumerate(runmodes) if 'GS' not in r],
+                  'errorlogging': errorlogging}
     for key in kwargs.keys():
         par_kwargs[key] = [kwargs[key][i] for i, r in enumerate(runmodes) if 'GS' not in r]
         
@@ -88,15 +95,15 @@ def run_tolerances(folder, exe, name, parameters, times = 10, run_prefix = '', #
     parameters['run_names'] = run_names
     parameters['reference_sol'] = ref_run_name
     parameters['labels'] = labels
-    parameters['tolerances'] = tolerances
-    parameters['times'] = times        
+    parameters['tolerances'] = tolerances_org
+    parameters['times'] = times
     
     with open(output_parameters, 'w') as myfile:
         myfile.write(json.dumps(parameters, indent = 4, sort_keys = True))
     return output_dir + '/'
 
 def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times, tolerances,
-                          ref_run_name, run_prefix, num_proc, runmodes, run_names, **kwargs):
+                          ref_run_name, run_prefix, num_proc, runmodes, run_names, errorlogging = False, **kwargs):
     for i, tol in enumerate(tolerances):
         last = False
         parameters['wftol'] = tol
@@ -104,11 +111,17 @@ def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times,
         for j, r in enumerate(runmodes):
             string_full = parameter_string + ' ' + ' '.join([f'-{key} {kwargs[key][j]}' for key in kwargs.keys()])
             
-            if i == len(tolerances) - 1:
+            ## if errorlogging, skip first tolerance for reference solution
+            if errorlogging and (i == 0) and (run_names[j] == ref_run_name):
+                continue
+            
+            ## last tolerance, skip for non reference solution
+            if i == len(tolerances) - 1: 
                 if run_names[j] != ref_run_name:
                     continue
                 else:
                     last = True
+            
             out_f = output_dir + '/' + str(run_names[j]) + '_' + str(tol) + '.txt'
             out_files['files'].append(out_f)
             
@@ -117,7 +130,8 @@ def run_tolerances_thread(folder, exe, output_dir, out_files, parameters, times,
             print(f'running {r} ({run_names[j]}) for tolerance of {tol}')
             for _ in range(times):
                 subprocess.call(run_string, shell = True)
-                if last: break
+                if last: 
+                    break
                 try:
                     if parameters['times_only_new'] and 'NEW' not in r:
                         break

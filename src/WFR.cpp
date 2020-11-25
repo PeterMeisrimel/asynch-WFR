@@ -73,6 +73,8 @@ void WFR::get_relative_tol(){
             throw std::invalid_argument("No method to check for convergence implemented for this input");
         }
     }
+    if (log_errors)
+        update_log[1] = rel_update_fac; 
 //    std::cout << "relative update factor " << rel_update_fac << std::endl;
 }
 
@@ -121,6 +123,9 @@ bool WFR::check_convergence(double WF_TOL){
                 throw std::invalid_argument("No method to check for convergence implemented for this input");
             }
         }
+        if (log_errors)
+            update_log[err_log_counter-1] = update;
+            
         std::cout << rel_update_fac << " update " << update << std::endl;
         if (update/rel_update_fac < WF_TOL)
             return true;
@@ -192,6 +197,12 @@ void WFR_serial::init_error_log(int steps_macro, int WR_MAXITER){
         WF_other -> get_last(error_other_log);
 
         err_log_counter++; // only one needed since error logging is based on macro steps rather than timesteps
+        
+        update_log = new double[WR_MAXITER+1];
+        update_log[0] = -1;
+        
+        runtimes_log = new double[WR_MAXITER+1];
+        runtimes_log[0] = 0;
     }
 }
 
@@ -204,6 +215,12 @@ void WFR_parallel::init_error_log(int steps_macro, int WR_MAXITER){
         error_log = new double[(WR_MAXITER+1)*DIM_SELF];
         WF_self -> get_last(error_log);
         err_log_counter++;
+        
+        update_log = new double[WR_MAXITER+1];
+        update_log[0] = -1;
+        
+        runtimes_log = new double[WR_MAXITER+1];
+        runtimes_log[0] = 0;
     }
 }
 
@@ -211,6 +228,7 @@ void WFR_serial::update_error_log(){
     if (log_errors){
         WF_self  -> get_last(error_log       + DIM_SELF *err_log_counter);
         WF_other -> get_last(error_other_log + DIM_OTHER*err_log_counter);
+        runtimes_log[err_log_counter] = MPI_Wtime() - runtime;
         err_log_counter++;
     }
 }
@@ -218,6 +236,7 @@ void WFR_serial::update_error_log(){
 void WFR_parallel::update_error_log(){
     if (log_errors){
         WF_self -> get_last(error_log + DIM_SELF*err_log_counter);
+        runtimes_log[err_log_counter] = MPI_Wtime() - runtime;
         err_log_counter++;
     }
 }
@@ -237,15 +256,20 @@ void WFR_parallel::write_error_log(){
 void WFR::write_error_log(){
     if (log_errors and (ID_SELF == 0)){
         for (int j = 0; j < err_log_counter; j++){
-            std::cout << std::setprecision(14) << ID_SELF << " " << j << " ";
+            std::cout << std::setprecision(14) << ID_SELF << " " << j << " " << runtimes_log[j] << " ";
             for(int i = 0; i < DIM_SELF; i++)
                 std::cout << std::setprecision(14) << error_log[i + j*DIM_SELF] << " ";
             std::cout << std::endl;
             
-            std::cout << std::setprecision(14) << ID_OTHER << " " << j << " ";
+            std::cout << std::setprecision(14) << ID_OTHER << " " << j << " " << runtimes_log[j] << " ";
             for(int i = 0; i < DIM_OTHER; i++)
                 std::cout << std::setprecision(14) << error_other_log[i + j*DIM_OTHER] << " ";
             std::cout << std::endl;
+            
         }
+        
+        for (int j = 0; j < err_log_counter; j++)
+            std::cout << std::setprecision(14) << update_log[j] << " ";
+        std::cout << std::endl;
     }
 }
