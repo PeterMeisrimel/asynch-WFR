@@ -7,7 +7,6 @@ Created on Thu Apr 16 11:10:56 2020
 """
 
 import numpy as np
-import pylab as pl
 from scipy.interpolate import interp1d
 
 import ufl
@@ -20,20 +19,12 @@ from dune.alugrid import aluSimplexGrid
 from dune.fem.function import uflFunction
 from dune.ufl import expression2GF
 
-from mpi4py import MPI
-
-comm = MPI.COMM_WORLD
-
-rank = comm.Get_rank()
-size = comm.Get_size()
-
 ## standard heat equation: alpha u_t + lamda_diff \Delta u = 0
 ## assume interface to be at zero, spatial domain marked by xa and xb
 class Problem_heat:
     eps = 1e-8
     ## gridsize = number of internal variables
     def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1., xb = 1., y = 1., mono = True, temp0 = None):
-        print('grid limiters ', rank, size, xa, xb, y, mono, temp0)
         self.y = y
         xa, xb, y = float(xa), float(xb), float(y)
         assert self.y > 0
@@ -62,9 +53,7 @@ class Problem_heat:
         self.space = solutionSpace(self.mesh, order = 1)
 
         self.x = ufl.SpatialCoordinate(ufl.triangle)
-        ######
         self.t_fac = Constant(1., name = "t_fac")
-        
         
         if temp0 is None:
             self.u0 = uflFunction(self.mesh, name = "u0", order = self.space.order,
@@ -76,13 +65,13 @@ class Problem_heat:
         self.f0_expr = uflFunction(self.mesh, name = "f0", order = self.space.order,
                                    ufl = self.t_fac*lambda_diff*500*ufl.cos(ufl.pi*(self.x[0] - self.xa)/self.len)*ufl.sin(ufl.pi*self.x[1])*ufl.pi/self.len)
 #        exact_sol = ufl.exp(-(5*lambda_diff*ufl.pi**2*tend)/(4*alpha))*u0
-
+        
         self.u = ufl.TrialFunction(self.space)
         self.v = ufl.TestFunction(self.space)
         self.uold = self.space.interpolate(self.u0, name = 'uold')
         self.unew = self.space.interpolate(self.u0, name = 'unew')
         self.u_checkpoint = self.uold.copy(name = 'u_checkpoint')
-
+        
         if order == 1:
             self.A = self.a*self.u*self.v*ufl.dx + self.dt*self.lam*ufl.dot(ufl.grad(self.u), ufl.grad(self.v))*ufl.dx
             self.b = self.a*self.uold*self.v*ufl.dx
@@ -90,7 +79,7 @@ class Problem_heat:
             ## weak form, Crank-Nicolson method
             self.A = self.a*self.u*self.v*ufl.dx + 0.5*self.dt*self.lam*ufl.dot(ufl.grad(self.u), ufl.grad(self.v))*ufl.dx
             self.b = self.a*self.uold*self.v*ufl.dx - 0.5*self.dt*self.lam*ufl.dot(ufl.grad(self.uold), ufl.grad(self.v))*ufl.dx
-
+            
         self.bc_bottom = DirichletBC(self.space, Constant(0.), self.x[1] < self.eps)
         self.bc_top = DirichletBC(self.space, Constant(0.), self.x[1] > 1 - self.eps)
         self.bcs = [self.bc_bottom, self.bc_top]
@@ -101,7 +90,7 @@ class Problem_heat:
             self.bcs.append(self.left); self.bcs.append(self.right)
 
             self.scheme = solutionScheme([self.A == self.b, *self.bcs], solver = 'cg')
-
+            
         self.create_checkpoint()
         self.reset()
 
@@ -146,16 +135,13 @@ class Problem_heat:
         res = np.zeros(Nx*Ny)
         sampler = Sampler(self.unew)
         for i in range(offset,  Nx):
-            print(rank, size, 'sampling x = ', xx + i*dx, 'y = 0. to ', self.y)
             res[(i-offset)*Ny:(i-offset+1)*Ny] = sampler.lineSample([xx + i*dx, 0.], [xx + i*dx, self.y], Ny)[1]
         return res
 
-    ######
     def get_ex_sol(self, t = 1):
         t_fac = np.exp(-(self.len**2 + 1)/(self.len**2)*np.pi**2*t*float(self.lam)/float(self.a))
         self.t_fac.value = t_fac
         self.unew.interpolate(self.u0)
-    ######
 
     def get_ex_flux(self, t = 1):
         t_fac = np.exp(-(self.len**2 + 1)/(self.len**2)*np.pi**2*t*float(self.lam)/float(self.a))
@@ -203,7 +189,6 @@ def get_solve_WR(Problem_heat_D, Problem_heat_N):
                 ugnew[i] = (1-th)*ugold[i] + th*ugnew[i]
 
             updates.append(norm(ugnew[-1] - tmp))
-            print(j, ' update = ', updates[-1])
             if updates[-1]/rel_tol_fac < TOL: # STOPPING CRITERIA FOR FIXED POINT ITERATION
                 break
         return (pD.get_sol(Nx * abs(xa), Ny + 1, dx, xx = xa),
@@ -212,34 +197,13 @@ def get_solve_WR(Problem_heat_D, Problem_heat_N):
     return solve_WR
 
 if __name__ == '__main__':
-    
-    tf = 1
-    gridsize = 10
-    xa, xb = -1., 1.
-    Nx, Ny = gridsize + 1, gridsize + 1
-    dx = 1./(gridsize + 1)
-    
-    if rank == 0:
-        print('rank 0 barrier')
-#        comm.Barrier()
-        print('rank 0 cleared')
-    
-    prob = Problem_heat(gridsize, 1., 0.1, 2, xa, xb, 1.)
-    prob.solve(1, 10)
-    prob.get_sol((xb - xa)*Nx + 1, Ny + 1, dx, xx = xa)
-    
-    if rank == 1:
-        print('rank 1 barrier')
-#        comm.Barrier()
-        print('rank 1 cleared')
-    
-#    from verification import get_parameters, verify_space_error, verify_mono_time
-#    savefig = 'mono_'
-    ## verify space order of monolithic solution
-#    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
-#    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1., xb = 1., savefig = None)
+    from verification import get_parameters, verify_space_error, verify_mono_time
+    savefig = 'mono_'
+    # verify space order of monolithic solution
+    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1, xb = 1, savefig = savefig)
+    verify_space_error(1, k = 4, order = 2, **get_parameters(), xa = -1., xb = 1., savefig = None)
 
-    ## verify time order with itself
-#    pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1., 'xb': 1.}
-#    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
-#    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)
+    # verify time order with itself
+    pp = {'tf': 1., **get_parameters(), 'gridsize': 64, 'xa': -1., 'xb': 1.}
+    verify_mono_time(k = 7, order = 1, **pp, savefig = savefig)
+    verify_mono_time(k = 5, order = 2, **pp, savefig = savefig)

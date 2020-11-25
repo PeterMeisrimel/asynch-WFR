@@ -23,7 +23,7 @@ class Problem_heat_D(Problem_heat):
     def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1, xb = 1, init = True):
         self.xa, self.xb, self.x_not_gamma = xa, xb, xa
         super(Problem_heat_D, self).__init__(gridsize, alpha, lambda_diff, order, xa = xa, xb = 0, mono = False)
-
+        
         self.bc_side = DirichletBC(self.space, Constant(0.), self.x[0] < xa + self.eps)
         self.bcs.append(self.bc_side)
 
@@ -153,7 +153,7 @@ class Problem_heat_N(Problem_heat):
     def __init__(self, gridsize, alpha, lambda_diff, order = 2, xa = -1, xb = 1, y = 1):
         self.xa, self.xb, self.x_not_gamma = xa, xb, xb
         super(Problem_heat_N, self).__init__(gridsize, alpha, lambda_diff, order, xa = 0, xb = xb, y = y, mono = False)
-
+        
         self.fold = self.space.interpolate(0., name = 'fold')
         self.fnew = self.space.interpolate(0., name = 'fnew')
         if order == 1:
@@ -259,15 +259,9 @@ class Problem_heat_N_euler(Problem_heat_N):
             
 if __name__ == '__main__':
     pl.close('all')
-
     from heat_dune import get_solve_WR
     from verification import get_parameters, verify_with_monolithic, verify_comb_error, verify_comb_error_space, plot_theta, verify_self_time
     from verification_D_N import verify_time, verify_space
-    
-#    prob = Problem_heat_N_euler(32, 1, 0.1)
-#    prob.solve(1, 100)
-    
-    
     
     for i, (D_prob, savefig) in enumerate(zip([Problem_heat_D, Problem_heat_D_weak], ['grad_', 'weak_'])):
         if i == 0:
