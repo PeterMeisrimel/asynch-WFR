@@ -20,16 +20,15 @@ Problem_heat_python::Problem_heat_python(int gridsize, double a, double g, const
     _length = gridsize + 2;
     _dx = 1.0/(gridsize + 1);
     
-//     this appears to change the paths to the current directory? without it, the import fails
-//    PyRun_SimpleString("import sys; import os");
-//    PyRun_SimpleString("sys.path.append(os.getcwd())");
-    PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('/home/peter/asynch-WFR/src/heat_DN/fenics_python/')");
+    PyRun_SimpleString("import sys; import os");
+//    this adds current path
+    PyRun_SimpleString("sys.path.append(os.getcwd() + '/fenics_python/')");
 //    PyRun_SimpleString("os.environ['OMP_NUM_THREADS'] = '1'");
     
     // import file, resp. python script
-//    PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_py"));
     PyObject *pFile = PyImport_Import(PyUnicode_FromString("heat_fenics_grad"));
+    if (pFile == NULL)
+        std::cout << "could not find file?" << std::endl;
     assert(pFile != NULL);
     
     PyObject *pDict = PyModule_GetDict(pFile);

@@ -5,7 +5,6 @@ Created on Tue Mar 10 22:31:31 2020
 
 @author: Peter Meisrimel
 """
-
 import dolfin as dol
 import pylab as pl
 import numpy as np
@@ -179,6 +178,6 @@ if __name__ == '__main__':
 #        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 1, **pp)
 #        verify_self_time(solve_WR = solver, savefig = savefig, k = 6, order = 2, **pp)
 
-    pp = {'tf': 1., **get_parameters(), 'gridsize': 256, 'xa': -1, 'xb': 1, 'theta': 0.5}
-    WR_full_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),
-                      k = 10, order = 2, **pp, savefig = '256_weak_')
+#    pp = {'tf': 1., **get_parameters(), 'gridsize': 256, 'xa': -1, 'xb': 1, 'theta': 0.5}
+#    WR_full_error(solve_WR = get_solve_WR(Problem_heat_D_weak, Problem_heat_N),
+#                      k = 10, order = 2, **pp, savefig = '256_weak_')

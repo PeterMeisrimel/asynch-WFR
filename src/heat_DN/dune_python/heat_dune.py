@@ -50,7 +50,7 @@ class Problem_heat:
             self.domain = cartesianDomain([xa, 0.], [xb, self.y], [self.len*(gridsize + 1), gridsize + 1])
 
         self.mesh = aluSimplexGrid(self.domain, serial = True)
-        self.space = solutionSpace(self.mesh, order = 1)
+        self.space = solutionSpace(self.mesh, order = 1, storage = 'petsc')
 
         self.x = ufl.SpatialCoordinate(ufl.triangle)
         self.t_fac = Constant(1., name = "t_fac")
